@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DECK_TITLE}} — Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   DESIGN TOKENS — keep in lock-step with deck-full.html
+══════════════════════════════════════ */
+:root{
+  --bg:#060d07; --sf:#0c1a0e; --sf2:#0f2113;
+  --bd:#1f3a25; --bd2:#2a5333;
+  --tx:#e8f5ea; --tm:#9fbfa6; --td:#6b8a72;
+  --gl:#4ade80;   /* GREEN  · primary / stage / OK */
+  --aml:#fbbf24;  /* AMBER  · anomaly / warning */
+  --cyl:#22d3ee;  /* CYAN   · info / extraction */
+  --pul:#a78bfa;  /* PURPLE · synthesis / advanced */
+  --rl:#f87171;   /* RED    · alert / reject */
+  --bg-g:#0a1f10; --bg-a:#1a1408; --bg-c:#08141a; --bg-p:#120e1f; --bg-r:#1a0b0b;
+}
+
+/* ══════════════════════════════════════
+   RESET + BASE — body 18px for projection readability
+══════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--tx);
+  font-family:'IBM Plex Sans','Noto Sans TC','Helvetica Neue',sans-serif;
+  font-size:18px; line-height:1.55; letter-spacing:0.005em;
+  font-variant-numeric:tabular-nums;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  background-image:
+    radial-gradient(ellipse at top, rgba(74,222,128,0.04), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(34,211,238,0.025), transparent 50%);
+}
+
+/* ══════════════════════════════════════
+   DECK CHASSIS
+══════════════════════════════════════ */
+#deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+.slide{
+  position:absolute;inset:0;width:100vw;height:100vh;
+  padding:44px 76px 60px;
+  opacity:0;pointer-events:none;
+  transition:opacity 250ms ease;
+  overflow:hidden;
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.slide.active{opacity:1;pointer-events:auto;}
+/* Vertical fill contract — body siblings absorb empty space; cover overrides below */
+.slide > .shead ~ *,
+.slide > .btitle ~ *{flex:1 1 auto;min-height:0;}
+.slide:not(#s1) > .flex-col{justify-content:space-between;}
+#s1{justify-content:center;}
+#s1 > *{flex:0 0 auto;}
+
+/* ── Entrance reveal: staggered when slide activates ── */
+.slide.active > .shead,
+.slide.active > .btitle{
+  animation:reveal-up 480ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.slide.active > .shead + *,
+.slide.active > .btitle + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 120ms both;
+}
+.slide.active > .shead + * + *,
+.slide.active > .btitle + * + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 200ms both;
+}
+.slide.active > .shead + * + * + *,
+.slide.active > .btitle + * + * + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 280ms both;
+}
+@keyframes reveal-up{
+  from{opacity:0;transform:translateY(12px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes reveal-fade{
+  from{opacity:0;} to{opacity:1;}
+}
+@media print {
+  .slide.active > *{
+    animation:none !important; opacity:1 !important; transform:none !important;
+  }
+}
+
+/* Progress + nav */
+#bar{position:fixed;top:0;left:0;height:3px;
+  background:linear-gradient(90deg,var(--gl),var(--cyl));z-index:100;
+  transition:width 250ms ease;box-shadow:0 0 12px rgba(74,222,128,0.4);}
+#nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:18px;padding:8px 16px;
+  background:rgba(15,33,19,0.85);backdrop-filter:blur(8px);
+  border:1px solid var(--bd);border-radius:24px;z-index:100;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--tm);}
+#nav button{width:30px;height:30px;background:transparent;
+  border:1px solid var(--bd2);border-radius:50%;color:var(--tx);
+  cursor:pointer;font-size:14px;transition:all 120ms;
+  display:flex;align-items:center;justify-content:center;}
+#nav button:hover{background:var(--gl);color:var(--bg);border-color:var(--gl);}
+#counter{min-width:48px;text-align:center;letter-spacing:0.05em;}
+
+/* ══════════════════════════════════════
+   SLIDE HEAD (headline-IS-conclusion contract)
+══════════════════════════════════════ */
+.shead{margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--bd);flex:0 0 auto;}
+.scat{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;
+  letter-spacing:0.18em;text-transform:uppercase;color:var(--gl);margin-bottom:10px;}
+.shead h2{font-size:40px;font-weight:700;line-height:1.2;letter-spacing:-0.015em;color:var(--tx);margin-bottom:10px;}
+.shead .sub{font-size:17px;color:var(--tm);font-weight:400;line-height:1.5;}
+
+/* ══════════════════════════════════════
+   PRIMITIVES
+══════════════════════════════════════ */
+h3{font-size:22px;font-weight:600;color:var(--tx);margin-bottom:9px;letter-spacing:-0.005em;line-height:1.3;}
+p{color:var(--tx);font-size:18px;line-height:1.5;}
+strong{color:var(--tx);font-weight:600;}
+em{color:var(--cyl);font-style:normal;}
+a{color:var(--cyl);text-decoration:none;border-bottom:1px solid transparent;transition:border-color 120ms;}
+a:hover{border-bottom-color:var(--cyl);}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.flex-col{display:flex;flex-direction:column;gap:10px;}
+
+/* ── Card system with depth ── */
+.card{
+  background:var(--sf); border:1px solid var(--bd); border-radius:10px;
+  padding:16px 20px; position:relative;
+  transition:transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.card:hover{transform:translateY(-1px);border-color:var(--bd2);}
+.card.tint-g{background:var(--bg-g);border-color:rgba(74,222,128,0.4);box-shadow:inset 0 1px 0 rgba(74,222,128,0.08), 0 0 0 1px rgba(74,222,128,0.05);}
+.card.tint-a{background:var(--bg-a);border-color:rgba(251,191,36,0.4);box-shadow:inset 0 1px 0 rgba(251,191,36,0.08), 0 0 0 1px rgba(251,191,36,0.05);}
+.card.tint-c{background:var(--bg-c);border-color:rgba(34,211,238,0.4);box-shadow:inset 0 1px 0 rgba(34,211,238,0.08), 0 0 0 1px rgba(34,211,238,0.05);}
+.card.tint-p{background:var(--bg-p);border-color:rgba(167,139,250,0.4);box-shadow:inset 0 1px 0 rgba(167,139,250,0.08), 0 0 0 1px rgba(167,139,250,0.05);}
+.card.tint-r{background:var(--bg-r);border-color:rgba(248,113,113,0.4);box-shadow:inset 0 1px 0 rgba(248,113,113,0.08), 0 0 0 1px rgba(248,113,113,0.05);}
+.card.tint-g:hover{box-shadow:inset 0 1px 0 rgba(74,222,128,0.12), 0 4px 18px rgba(74,222,128,0.12);}
+.card.tint-a:hover{box-shadow:inset 0 1px 0 rgba(251,191,36,0.12), 0 4px 18px rgba(251,191,36,0.12);}
+.card.tint-c:hover{box-shadow:inset 0 1px 0 rgba(34,211,238,0.12), 0 4px 18px rgba(34,211,238,0.12);}
+.card.tint-p:hover{box-shadow:inset 0 1px 0 rgba(167,139,250,0.12), 0 4px 18px rgba(167,139,250,0.12);}
+.card.tint-r:hover{box-shadow:inset 0 1px 0 rgba(248,113,113,0.12), 0 4px 18px rgba(248,113,113,0.12);}
+.card .ct{font-family:'IBM Plex Mono',monospace;font-size:13.5px;
+  letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;color:var(--gl);}
+
+/* Tables */
+.tw{margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;font-size:17.5px;}
+th{text-align:left;padding:11px 14px;background:var(--sf2);color:var(--tm);
+  font-weight:600;font-family:'IBM Plex Mono',monospace;font-size:13.5px;
+  letter-spacing:0.08em;text-transform:uppercase;border-bottom:1px solid var(--bd2);}
+td{padding:10px 14px;border-bottom:1px solid var(--bd);color:var(--tx);vertical-align:top;line-height:1.45;}
+tr.hi td{background:rgba(74,222,128,0.04);}
+tr:last-child td{border-bottom:none;}
+
+/* Badges */
+.b{display:inline-block;font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;font-weight:600;letter-spacing:0.06em;
+  padding:3px 10px;border-radius:4px;text-transform:uppercase;}
+.bg{background:rgba(74,222,128,0.15);color:var(--gl);border:1px solid rgba(74,222,128,0.3);}
+.ba{background:rgba(251,191,36,0.15);color:var(--aml);border:1px solid rgba(251,191,36,0.3);}
+.bc{background:rgba(34,211,238,0.15);color:var(--cyl);border:1px solid rgba(34,211,238,0.3);}
+.bp{background:rgba(167,139,250,0.15);color:var(--pul);border:1px solid rgba(167,139,250,0.3);}
+.br{background:rgba(248,113,113,0.15);color:var(--rl);border:1px solid rgba(248,113,113,0.3);}
+
+/* Info box */
+.ib{padding:14px 20px;border-radius:8px;border-left:3px solid var(--gl);
+  background:var(--bg-g);font-size:17.5px;color:var(--tx);line-height:1.5;}
+.ib.iba{border-left-color:var(--aml);background:var(--bg-a);}
+.ib.ibc{border-left-color:var(--cyl);background:var(--bg-c);}
+.ib.ibp{border-left-color:var(--pul);background:var(--bg-p);}
+.ib.ibr{border-left-color:var(--rl);background:var(--bg-r);}
+
+/* ── Stat tile (number-dominant) ── */
+.stat{
+  background:var(--sf); border:1px solid var(--bd); border-radius:10px;
+  padding:14px 16px 12px; text-align:left; position:relative; overflow:hidden;
+}
+.stat::before{content:'';position:absolute;top:0;right:0;width:4px;height:28px;background:var(--gl);opacity:0.85;}
+.stat .sv{font-family:'IBM Plex Mono',monospace;font-size:44px;font-weight:600;
+  color:var(--gl);line-height:1;letter-spacing:-0.02em;display:block;}
+.stat .sv .unit{font-size:18px;color:var(--tm);font-weight:500;margin-left:4px;letter-spacing:0;}
+.stat .sl{font-size:12px;color:var(--tm);letter-spacing:0.14em;text-transform:uppercase;
+  margin-top:8px;font-family:'IBM Plex Mono',monospace;}
+.stat.stat-a::before{background:var(--aml);} .stat.stat-a .sv{color:var(--aml);}
+.stat.stat-c::before{background:var(--cyl);} .stat.stat-c .sv{color:var(--cyl);}
+.stat.stat-p::before{background:var(--pul);} .stat.stat-p .sv{color:var(--pul);}
+.stat.stat-r::before{background:var(--rl);} .stat.stat-r .sv{color:var(--rl);}
+
+/* References (dense version) */
+.ref1{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:6px 0;
+  border-bottom:1px dashed var(--bd);}
+.ref1:last-child{border-bottom:none;}
+.rn{width:24px;height:24px;border:1px solid var(--gl);color:var(--gl);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;}
+.rt{font-size:16px;font-weight:600;color:var(--tx);line-height:1.4;}
+.rsrc{font-size:14.5px;color:var(--tm);margin-top:3px;line-height:1.4;}
+.rl2{font-size:13px;color:var(--cyl);font-family:'IBM Plex Mono',monospace;}
+.rcat{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--gl);
+  margin-top:11px;margin-bottom:6px;}
+
+/* ══════════════════════════════════════
+   COVER-STYLE TITLE on slide 1 (atmospheric, but combined with content cards)
+══════════════════════════════════════ */
+#s1{position:relative;overflow:hidden;}
+#s1::before{
+  content:'';position:absolute;top:-160px;right:-160px;
+  width:560px;height:560px;
+  background:radial-gradient(circle, rgba(74,222,128,0.07), transparent 65%);
+  pointer-events:none;
+}
+#s1::after{
+  content:'';position:absolute;bottom:-140px;left:-140px;
+  width:440px;height:440px;
+  background:radial-gradient(circle, rgba(34,211,238,0.045), transparent 65%);
+  pointer-events:none;
+}
+.btitle{position:relative;margin-bottom:28px;}
+.btitle .ornament{
+  width:48px;height:2px;background:var(--gl);
+  margin-bottom:20px;
+  box-shadow:0 0 10px rgba(74,222,128,0.5);
+}
+.btitle .eyebrow{
+  font-family:'IBM Plex Mono',monospace;font-size:13px;
+  letter-spacing:0.22em;text-transform:uppercase;color:var(--gl);
+  margin-bottom:20px;
+  display:flex;align-items:center;gap:12px;
+}
+.btitle .eyebrow .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--gl);
+  box-shadow:0 0 8px var(--gl);animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:0.6;}50%{opacity:1;}}
+.btitle h1{font-size:60px;font-weight:700;line-height:1.1;letter-spacing:-0.022em;color:var(--tx);margin-bottom:18px;}
+.btitle h1 .accent{color:var(--gl);font-weight:700;}
+.btitle .lede{font-size:20px;color:var(--tm);line-height:1.5;max-width:1100px;font-weight:400;}
+
+/* ══════════════════════════════════════
+   PRINT / PDF EXPORT — A4 landscape, page per slide
+══════════════════════════════════════ */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; }
+  #deck { position: static !important; height: auto !important; display: block !important; }
+  .slide {
+    position: relative !important; inset: auto !important;
+    display: flex !important; flex-direction: column !important;
+    justify-content: space-between !important;
+    opacity: 1 !important; pointer-events: all !important;
+    width: 100% !important; height: 100vh !important;
+    overflow: hidden !important;
+    page-break-after: always; break-after: page; page-break-inside: avoid;
+    transition: none !important;
+  }
+  #s1 { justify-content: center !important; }
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  /* Kill ALL animations + transitions on descendants to prevent partial-rendered first paint */
+  .slide > *, .slide *::before, .slide *::after {
+    animation: none !important; transition: none !important;
+    opacity: 1 !important; transform: none !important;
+  }
+  #nav, #bar { display: none !important; }
+}
+
+/* ══════════════════════════════════════
+   PER-SLIDE DENSITY OVERRIDES
+══════════════════════════════════════ */
+/* Architecture mini-pipeline (S2) */
+.mpipe{display:grid;grid-template-columns:1fr 24px 1fr 24px 1fr;
+  align-items:stretch;gap:0;margin-bottom:16px;}
+.mpstage{position:relative;padding:14px 16px;border-radius:10px;
+  background:var(--sf);border:1px solid var(--bd);
+  display:flex;flex-direction:column;min-height:104px;}
+.mpstage .stagenum{position:absolute;top:-11px;left:14px;
+  width:24px;height:24px;border-radius:50%;background:var(--bg);
+  border:1.5px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;}
+.mpstage .mptitle{font-family:'IBM Plex Mono',monospace;font-size:13.5px;
+  letter-spacing:0.1em;text-transform:uppercase;margin-bottom:7px;font-weight:600;}
+.mpstage .mpdesc{font-size:16px;color:var(--tm);line-height:1.5;}
+.mpstage.pc{border-color:var(--cyl);color:var(--cyl);background:var(--bg-c);}
+.mpstage.pg{border-color:var(--gl);color:var(--gl);background:var(--bg-g);}
+.mpstage.pp{border-color:var(--pul);color:var(--pul);background:var(--bg-p);}
+.mpstage .mpdesc,.mpstage strong{color:var(--tx);}
+.mparrow{display:flex;align-items:center;justify-content:center;
+  color:var(--bd2);position:relative;}
+.mparrow::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;
+  background:linear-gradient(90deg, transparent, var(--bd2) 30%, var(--bd2) 70%, transparent);}
+.mparrow::after{content:'▶';position:relative;z-index:1;background:var(--bg);
+  padding:0 4px;color:var(--gl);font-size:11px;}
+
+/* References slide (12 entries dense) — projection-readable; further compression should cut entries instead */
+#s4{padding-bottom:44px;}
+#s4 .shead{margin-bottom:14px;padding-bottom:10px;}
+#s4 .ref1{padding:5px 0;}
+#s4 .rcat{margin-top:10px;margin-bottom:5px;font-size:12.5px;}
+#s4 .rt{font-size:14.5px;line-height:1.35;}
+#s4 .rsrc{font-size:13.5px;line-height:1.4;margin-top:2px;}
+#s4 .rl2{font-size:12.5px;}
+#s4 .rn{width:24px;height:24px;font-size:12px;}
+#s4 .ref1{grid-template-columns:26px 1fr;gap:10px;}
+</style>
+</head>
+<body>
+
+<div id="bar" style="width:0%"></div>
+
+<div id="deck">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 1 · COVER + THESIS (combined, atmospheric)
+     Role: title with conclusion + 3-card problem/solution/ask
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide active cover-active" id="s1">
+  <div class="btitle">
+    <div class="ornament"></div>
+    <div class="eyebrow"><span class="dot"></span>{{EYEBROW · e.g. EXECUTIVE BRIEF · TOPIC}}</div>
+    <h1>{{Headline thesis — what this brief argues, with <span class="accent">key term</span> in green}}</h1>
+    <div class="lede">{{One-paragraph lede: who this is for, what it argues, what decision it enables}}</div>
+  </div>
+  <div class="g3">
+    <div class="card tint-r">
+      <div class="ct" style="color:var(--rl)">{{Frame 1 · e.g. PROBLEM / RISK / GAP}}</div>
+      <p>{{What's broken / what's the gap, quantified with a metric}}</p>
+    </div>
+    <div class="card tint-g">
+      <div class="ct">{{Frame 2 · e.g. PROPOSAL / SOLUTION / THESIS}}</div>
+      <p>{{One-sentence claim. Why it works.}}</p>
+    </div>
+    <div class="card tint-c">
+      <div class="ct" style="color:var(--cyl)">{{Frame 3 · e.g. DECISION / ASK / NEXT STEP}}</div>
+      <p>{{What the reader is being asked to decide / approve / fund}}</p>
+    </div>
+  </div>
+</section>
+
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+SLIDE 2 · HERO / CENTERPIECE — pick ONE pattern based on the report type:
+
+  · Mini-pipeline (.mpipe / .mpstage)        — process flow (S1 → S2 → S3)
+  · 3-card stack (.g3 with .card tint-c/g/p) — layered system / category breakdown
+  · Timeline                                  — postmortem chronology
+  · Quadrant 2×2 (use .g2 with internal axis) — positioning matrix
+  · Comparison table (.tw / table)            — us vs. alternatives
+  · Funnel                                    — opportunity sizing / drop-off
+
+The pipeline is the default; swap content + class names to use another pattern.
+See references/hero-patterns.md in the skill for full recipes.
+═══════════════════════════════════════════════════════════════════════════════
+-->
+<section class="slide" id="s2">
+  <div class="shead">
+    <div class="scat">{{HERO · e.g. ARCHITECTURE / TIMELINE / POSITIONING}}</div>
+    <h2>{{Headline describing the centerpiece thesis}}</h2>
+    <div class="sub">{{Stage count, branch count, integration scope — or equivalent metric}}</div>
+  </div>
+  <div class="mpipe">
+    <div class="mpstage pc">
+      <span class="stagenum">1</span>
+      <div class="mptitle">{{Stage 1 name}}</div>
+      <div class="mpdesc">{{What enters / what's produced}}</div>
+    </div>
+    <div class="mparrow"></div>
+    <div class="mpstage pg">
+      <span class="stagenum">2</span>
+      <div class="mptitle">{{Stage 2 name}}</div>
+      <div class="mpdesc">{{Core transformation}}</div>
+    </div>
+    <div class="mparrow"></div>
+    <div class="mpstage pp">
+      <span class="stagenum">3</span>
+      <div class="mptitle">{{Stage 3 name}}</div>
+      <div class="mpdesc">{{Output / integration target}}</div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card tint-a">
+      <div class="ct" style="color:var(--aml)">{{Branch / Side 1 · name}}</div>
+      <p>{{One-sentence description}}</p>
+    </div>
+    <div class="card tint-c">
+      <div class="ct" style="color:var(--cyl)">{{Branch / Side 2 · name}}</div>
+      <p>{{One-sentence description}}</p>
+    </div>
+  </div>
+  <div class="ib" style="margin-top:16px"><strong>{{Output label · e.g. 業務輸出 / Outcome / Deliverable}}：</strong>{{what value this delivers in one line}}</div>
+</section>
+
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+SLIDE 3 · SELECTION / SCORECARD — adapt column schema to report type:
+
+  · Architecture brief : Layer | Tool | License | Purpose | Priority
+  · Strategy           : Option | Cost | Time-to-value | Risk | Decision
+  · Postmortem         : Action item | Owner | Date | Severity | Gate
+  · Research           : Method | Sample | Metric | Tradeoff | Chosen
+  · Due-diligence      : Issue | Severity | Mitigation | Residual risk | Verdict
+
+Replace th content + row cells; keep the .hi class for highlighted (chosen) rows.
+═══════════════════════════════════════════════════════════════════════════════
+-->
+<section class="slide" id="s3">
+  <div class="shead">
+    <div class="scat">{{SELECTION · e.g. TOOL CHOICE / SCORECARD / ACTION PLAN}}</div>
+    <h2>{{Headline asserting the selection principle — full sentence}}</h2>
+    <div class="sub">{{Principle in one line — e.g. 開源授權清晰 · 可本地部署 · 活躍社群維護}}</div>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>{{Col 1}}</th><th>{{Col 2}}</th><th>{{Col 3}}</th><th>{{Col 4}}</th><th>{{Col 5}}</th></tr></thead>
+      <tbody>
+        <tr class="hi"><td>{{r1c1}}</td><td>{{r1c2}}</td><td>{{r1c3}}</td><td>{{r1c4}}</td><td><span class="b bg">{{MVP / OK}}</span></td></tr>
+        <tr class="hi"><td>{{r2c1}}</td><td>{{r2c2}}</td><td>{{r2c3}}</td><td>{{r2c4}}</td><td><span class="b bg">{{MVP / OK}}</span></td></tr>
+        <tr class="hi"><td>{{r3c1}}</td><td>{{r3c2}}</td><td>{{r3c3}}</td><td>{{r3c4}}</td><td><span class="b bg">{{MVP / OK}}</span></td></tr>
+        <tr><td>{{r4c1}}</td><td>{{r4c2}}</td><td>{{r4c3}}</td><td>{{r4c4}}</td><td><span class="b bc">{{Phase 1}}</span></td></tr>
+        <tr><td>{{r5c1}}</td><td>{{r5c2}}</td><td>{{r5c3}}</td><td>{{r5c4}}</td><td><span class="b ba">{{Phase 2}}</span></td></tr>
+        <tr><td>{{r6c1}}</td><td>{{r6c2}}</td><td>{{r6c3}}</td><td>{{r6c4}}</td><td><span class="b bp">{{As-needed}}</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!--
+═══════════════════════════════════════════════════════════════════════════════
+SLIDE 4 · REFERENCES — dense citation grid, 12 entries in 4 categories.
+Generalize categories per report type:
+
+  · Architecture / RFC  : Commercial precedent | Academic | Frameworks/OSS | Standards
+  · Strategy / Pitch    : Market research | Analyst | Customer interview | Comparables
+  · Postmortem          : Internal logs | Code commit | Customer report | Standard
+  · Research            : Primary literature | Datasets | Methods | Tools
+  · Threat model        : NIST | OWASP | MITRE ATT&CK | Vendor advisories
+
+Citation format: Title — Source/Vendor (Venue YEAR · License/Institution).
+Every link must resolve; if the URL is unverified, mark with [unverified].
+═══════════════════════════════════════════════════════════════════════════════
+-->
+<section class="slide" id="s4">
+  <div class="shead">
+    <div class="scat">{{REFERENCES · 佐證基礎}}</div>
+    <h2>{{Headline stating the proposal is evidence-backed}}</h2>
+    <div class="sub">{{N from category 1 · N from category 2 · N from category 3 · N from category 4 — all verifiable}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="rcat">{{Category 1 · e.g. Commercial precedent / Industry sources}}</div>
+      <div class="ref1"><div class="rn">1</div><div><div class="rt">{{Title — Source/Vendor}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id / domain}}</a></div></div>
+      <div class="ref1"><div class="rn">2</div><div><div class="rt">{{Title — Source/Vendor}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="ref1"><div class="rn">3</div><div><div class="rt">{{Title — Source/Vendor}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="rcat">{{Category 2 · e.g. Academic / Primary literature}}</div>
+      <div class="ref1"><div class="rn">4</div><div><div class="rt">{{Paper title}} ({{VENUE YEAR · Institution}})</div><div class="rsrc">{{description · arXiv:ID}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="ref1"><div class="rn">5</div><div><div class="rt">{{Paper title}} ({{VENUE YEAR · Institution}})</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="ref1"><div class="rn">6</div><div><div class="rt">{{Paper title}} ({{VENUE YEAR · Institution}})</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+    </div>
+    <div>
+      <div class="rcat">{{Category 3 · e.g. Framework · Tool · OSS}}</div>
+      <div class="ref1"><div class="rn">7</div><div><div class="rt">{{Name — origin (License)}}</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{repo path}}</a></div></div>
+      <div class="ref1"><div class="rn">8</div><div><div class="rt">{{Name — origin (License)}}</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{repo path}}</a></div></div>
+      <div class="ref1"><div class="rn">9</div><div><div class="rt">{{Name — origin (License)}}</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{repo path}}</a></div></div>
+      <div class="rcat">{{Category 4 · e.g. Standard · Spec · Regulation}}</div>
+      <div class="ref1"><div class="rn">10</div><div><div class="rt">{{Standard / spec name}}</div><div class="rsrc">{{description, version}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="ref1"><div class="rn">11</div><div><div class="rt">{{Standard / spec name}}</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      <div class="ref1"><div class="rn">12</div><div><div class="rt">{{Standard / spec name}}</div><div class="rsrc">{{description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<nav id="nav">
+  <button id="prev" aria-label="Previous">&larr;</button>
+  <span id="counter">1 / 4</span>
+  <button id="next" aria-label="Next">&rarr;</button>
+</nav>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+  let idx = 0;
+  function show(n){
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      const active = i === idx;
+      s.classList.toggle('active', active);
+      // restart entrance animations on every activation
+      if (active) {
+        Array.from(s.children).forEach(child => {
+          child.style.animationName = 'none';
+          void child.offsetWidth;
+          child.style.animationName = '';
+        });
+      }
+    });
+    counter.textContent = (idx + 1) + ' / ' + slides.length;
+    bar.style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  document.getElementById('prev').onclick = () => show(idx - 1);
+  document.getElementById('next').onclick = () => show(idx + 1);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(idx + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(idx - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>

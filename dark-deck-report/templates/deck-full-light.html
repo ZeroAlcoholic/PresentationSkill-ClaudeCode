@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DECK_TITLE}} — Architecture Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════ */
+/* LIGHT VARIANT — inverted from dark forensic.
+   Same layout primitives, same fonts, same overflow contract.
+   Differences confined to: tokens, body bg gradients, card shadows
+   (inset highlight → drop shadow), cover blooms, nav chrome. */
+:root{
+  /* Surfaces — warm-tinted white, not pure #fff (harsh on eyes at projection) */
+  --bg:#fafaf7; --sf:#ffffff; --sf2:#f1f4ef;
+  --bd:#d9e2dc; --bd2:#a8bdb0;
+  /* Text — ink-green primary (墨綠), muted toward neutral gray-green */
+  --tx:#0c1a0e; --tm:#4a5e4f; --td:#6d7e72;
+  /* Semantic accents — darker hues so they stay legible on white */
+  --gl:#15803d;   /* GREEN  · primary / stage / OK         (forest) */
+  --aml:#b45309;  /* AMBER  · anomaly L1 / typography      (burnt) */
+  --cyl:#0e7490;  /* CYAN   · info / extraction            (teal) */
+  --pul:#6d28d9;  /* PURPLE · synthesis / advanced         (violet) */
+  --rl:#b91c1c;   /* RED    · alert / reject               (maroon) */
+  /* Tint surfaces — very light pastels of each accent */
+  --bg-g:#ecfdf5; --bg-a:#fef3c7; --bg-c:#ecfeff; --bg-p:#f3e8ff; --bg-r:#fee2e2;
+}
+
+/* ══════════════════════════════════════
+   RESET + BASE
+══════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font-family:'IBM Plex Sans','Noto Sans TC','Helvetica Neue',sans-serif;
+  font-size:18px;
+  line-height:1.55;
+  letter-spacing:0.005em;
+  font-variant-numeric:tabular-nums;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  /* subtle warmth — atmosphere on warm white without going beige */
+  background-image:
+    radial-gradient(ellipse at top, rgba(21,128,61,0.035), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(14,116,144,0.025), transparent 50%);
+}
+
+/* ══════════════════════════════════════
+   DECK CHASSIS
+══════════════════════════════════════ */
+#deck{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.slide{
+  position:absolute;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  padding:46px 68px 62px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 250ms ease;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+}
+.slide.active{opacity:1;pointer-events:auto;}
+
+/* Vertical fill: body siblings (everything after .shead) grow to fill the canvas */
+.slide > .shead ~ *{
+  flex:1 1 auto;
+  min-height:0;
+}
+/* When a body block is a flex-column with multiple cards, distribute them across the height */
+.slide:not(#s1) > .flex-col{
+  justify-content:space-between;
+}
+
+/* ── Entrance: staggered reveal when a slide becomes active ── */
+.slide.active > .shead{
+  animation:reveal-up 480ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.slide.active > .shead + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 120ms both;
+}
+.slide.active > .shead + * + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 200ms both;
+}
+.slide.active > .shead + * + * + *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) 280ms both;
+}
+.slide.active.cover-active .ornament{
+  animation:reveal-line 600ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.slide.active.cover-active .eyebrow{
+  animation:reveal-fade 500ms ease-out 200ms both;
+}
+.slide.active.cover-active h1{
+  animation:reveal-up 700ms cubic-bezier(0.16,1,0.3,1) 280ms both;
+}
+.slide.active.cover-active .lede{
+  animation:reveal-up 600ms cubic-bezier(0.16,1,0.3,1) 420ms both;
+}
+.slide.active.cover-active .meta{
+  animation:reveal-fade 500ms ease-out 600ms both;
+}
+@keyframes reveal-up{
+  from{opacity:0;transform:translateY(14px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes reveal-fade{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+@keyframes reveal-line{
+  from{opacity:0;width:0;}
+  to{opacity:1;width:64px;}
+}
+/* Disable entrance animations under print so PDF is deterministic */
+@media print {
+  .slide.active > *, .slide.active.cover-active > *{
+    animation:none !important;
+    opacity:1 !important;
+    transform:none !important;
+  }
+}
+
+/* Progress bar */
+#bar{
+  position:fixed;
+  top:0; left:0;
+  height:3px;
+  background:linear-gradient(90deg,var(--gl),var(--cyl));
+  z-index:100;
+  transition:width 250ms ease;
+  box-shadow:0 1px 4px rgba(21,128,61,0.25);
+}
+
+/* Navigation */
+#nav{
+  position:fixed;
+  bottom:18px; left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:8px 16px;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(8px);
+  border:1px solid var(--bd);
+  border-radius:24px;
+  box-shadow:0 4px 18px rgba(12,26,14,0.08);
+  z-index:100;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  color:var(--tm);
+}
+#nav button{
+  width:30px; height:30px;
+  background:transparent;
+  border:1px solid var(--bd2);
+  border-radius:50%;
+  color:var(--tx);
+  cursor:pointer;
+  font-size:14px;
+  transition:all 120ms;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#nav button:hover{background:var(--gl);color:var(--bg);border-color:var(--gl);}
+#counter{min-width:48px;text-align:center;letter-spacing:0.05em;}
+
+/* ══════════════════════════════════════
+   SLIDE HEAD (the headline-is-conclusion contract)
+══════════════════════════════════════ */
+.shead{
+  margin-bottom:26px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--bd);
+}
+.scat{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--gl);
+  margin-bottom:10px;
+}
+.shead h2{
+  font-size:42px;
+  font-weight:700;
+  line-height:1.18;
+  letter-spacing:-0.018em;
+  color:var(--tx);
+  margin-bottom:10px;
+}
+.shead .sub{
+  font-size:18px;
+  color:var(--tm);
+  font-weight:400;
+  line-height:1.45;
+}
+
+/* ══════════════════════════════════════
+   PRIMITIVES
+══════════════════════════════════════ */
+h3{font-size:22px;font-weight:600;color:var(--tx);margin-bottom:12px;letter-spacing:-0.008em;line-height:1.3;}
+p{color:var(--tx);font-size:18px;line-height:1.5;}
+strong{color:var(--tx);font-weight:600;}
+em{color:var(--cyl);font-style:normal;}
+
+a{color:var(--cyl);text-decoration:none;border-bottom:1px solid transparent;transition:border-color 120ms;}
+a:hover{border-bottom-color:var(--cyl);}
+
+ul,ol{padding-left:22px;color:var(--tx);font-size:18px;}
+li{margin-bottom:6px;line-height:1.5;}
+
+/* Grid layouts */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.flex-col{display:flex;flex-direction:column;gap:8px;}
+.flex-row{display:flex;flex-direction:row;gap:12px;align-items:center;}
+
+/* ── Card system — subtle elevation, tint variants get accent glow ── */
+.card{
+  background:var(--sf);
+  border:1px solid var(--bd);
+  border-radius:10px;
+  padding:16px 20px;
+  position:relative;
+  transition:transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+  /* light mode: drop shadow gives depth (inset highlight reads flat on white) */
+  box-shadow:0 1px 2px rgba(12,26,14,0.04);
+}
+.card:hover{
+  transform:translateY(-1px);
+  border-color:var(--bd2);
+  box-shadow:0 2px 6px rgba(12,26,14,0.06);
+}
+.card.tint-g{background:var(--bg-g);border-color:rgba(21,128,61,0.3);box-shadow:0 1px 2px rgba(21,128,61,0.06);}
+.card.tint-a{background:var(--bg-a);border-color:rgba(180,83,9,0.3);box-shadow:0 1px 2px rgba(180,83,9,0.06);}
+.card.tint-c{background:var(--bg-c);border-color:rgba(14,116,144,0.3);box-shadow:0 1px 2px rgba(14,116,144,0.06);}
+.card.tint-p{background:var(--bg-p);border-color:rgba(109,40,217,0.3);box-shadow:0 1px 2px rgba(109,40,217,0.06);}
+.card.tint-r{background:var(--bg-r);border-color:rgba(185,28,28,0.3);box-shadow:0 1px 2px rgba(185,28,28,0.06);}
+.card.tint-g:hover{box-shadow:0 4px 14px rgba(21,128,61,0.16);}
+.card.tint-a:hover{box-shadow:0 4px 14px rgba(180,83,9,0.16);}
+.card.tint-c:hover{box-shadow:0 4px 14px rgba(14,116,144,0.16);}
+.card.tint-p:hover{box-shadow:0 4px 14px rgba(109,40,217,0.16);}
+.card.tint-r:hover{box-shadow:0 4px 14px rgba(185,28,28,0.16);}
+.card .ct{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13.5px;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+  color:var(--gl);
+}
+
+/* Tables */
+.tw{margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;font-size:18px;}
+th{
+  text-align:left;
+  padding:11px 14px;
+  background:var(--sf2);
+  color:var(--tm);
+  font-weight:600;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:14px;
+  letter-spacing:0.08em;
+  text-transform:uppercase;
+  border-bottom:1px solid var(--bd2);
+}
+td{
+  padding:10px 14px;
+  border-bottom:1px solid var(--bd);
+  color:var(--tx);
+  vertical-align:top;
+  line-height:1.45;
+}
+tr.hi td{background:rgba(21,128,61,0.08);}
+tr:last-child td{border-bottom:none;}
+
+/* Inline badges */
+.b{
+  display:inline-block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  font-weight:600;
+  letter-spacing:0.06em;
+  padding:3px 10px;
+  border-radius:4px;
+  text-transform:uppercase;
+}
+.bg{background:rgba(21,128,61,0.10);color:var(--gl);border:1px solid rgba(21,128,61,0.3);}
+.ba{background:rgba(180,83,9,0.10);color:var(--aml);border:1px solid rgba(180,83,9,0.3);}
+.bc{background:rgba(14,116,144,0.10);color:var(--cyl);border:1px solid rgba(14,116,144,0.3);}
+.bp{background:rgba(109,40,217,0.10);color:var(--pul);border:1px solid rgba(109,40,217,0.3);}
+.br{background:rgba(185,28,28,0.10);color:var(--rl);border:1px solid rgba(185,28,28,0.3);}
+
+/* Info box */
+.ib{
+  padding:14px 20px;
+  border-radius:8px;
+  border-left:3px solid var(--gl);
+  background:var(--bg-g);
+  font-size:18px;
+  line-height:1.5;
+  color:var(--tx);
+}
+.ib.iba{border-left-color:var(--aml);background:var(--bg-a);}
+.ib.ibc{border-left-color:var(--cyl);background:var(--bg-c);}
+.ib.ibp{border-left-color:var(--pul);background:var(--bg-p);}
+.ib.ibr{border-left-color:var(--rl);background:var(--bg-r);}
+
+/* Inline code */
+code{
+  background:var(--sf2);
+  border:1px solid var(--bd);
+  padding:2px 6px;
+  border-radius:4px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  color:var(--cyl);
+}
+
+/* ── Stat tile — number-dominant, whisper label ── */
+.stat{
+  background:var(--sf);
+  border:1px solid var(--bd);
+  border-radius:10px;
+  padding:18px 20px 16px;
+  text-align:left;
+  position:relative;
+  overflow:hidden;
+}
+.stat::before{
+  /* corner accent */
+  content:'';
+  position:absolute;
+  top:0; right:0;
+  width:4px; height:32px;
+  background:var(--gl);
+  opacity:0.85;
+}
+.stat .sv{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:54px;
+  font-weight:600;
+  color:var(--gl);
+  line-height:1;
+  letter-spacing:-0.02em;
+  display:block;
+}
+.stat .sv .unit{
+  font-size:20px;
+  color:var(--tm);
+  font-weight:500;
+  margin-left:4px;
+  letter-spacing:0;
+}
+.stat .sl{
+  font-size:13px;
+  color:var(--tm);
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  margin-top:12px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.stat .delta{
+  display:inline-block;
+  margin-top:6px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  color:var(--cyl);
+  letter-spacing:0.05em;
+}
+/* coloured variants */
+.stat.stat-a::before{background:var(--aml);}
+.stat.stat-a .sv{color:var(--aml);}
+.stat.stat-c::before{background:var(--cyl);}
+.stat.stat-c .sv{color:var(--cyl);}
+.stat.stat-p::before{background:var(--pul);}
+.stat.stat-p .sv{color:var(--pul);}
+.stat.stat-r::before{background:var(--rl);}
+.stat.stat-r .sv{color:var(--rl);}
+
+/* References */
+.ref{
+  display:grid;
+  grid-template-columns:28px 1fr;
+  gap:12px;
+  padding:8px 0;
+  border-bottom:1px dashed var(--bd);
+}
+.ref:last-child{border-bottom:none;}
+.rn{
+  width:28px; height:28px;
+  border:1px solid var(--gl);
+  color:var(--gl);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+}
+.rt{font-size:17px;font-weight:600;color:var(--tx);line-height:1.4;}
+.rsrc{font-size:15.5px;color:var(--tm);margin-top:3px;line-height:1.4;}
+.rl2{font-size:13.5px;color:var(--cyl);font-family:'IBM Plex Mono',monospace;}
+.rcat{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--gl);
+  margin-top:12px;
+  margin-bottom:6px;
+}
+
+/* ══════════════════════════════════════
+   COVER SLIDE — atmospheric, three-zone composition
+══════════════════════════════════════ */
+#s1{
+  justify-content:center;
+  align-items:flex-start;
+  padding-left:100px;
+  padding-right:100px;
+  position:relative;
+  overflow:hidden;
+}
+#s1 > *{flex:0 0 auto;}  /* cover children keep natural size, not stretched */
+/* atmospheric bloom — same diagonal composition, paler washes for white bg */
+#s1::before{
+  content:'';
+  position:absolute;
+  top:-200px; right:-200px;
+  width:720px; height:720px;
+  background:radial-gradient(circle, rgba(21,128,61,0.10), transparent 65%);
+  pointer-events:none;
+}
+#s1::after{
+  content:'';
+  position:absolute;
+  bottom:-160px; left:-160px;
+  width:520px; height:520px;
+  background:radial-gradient(circle, rgba(14,116,144,0.07), transparent 65%);
+  pointer-events:none;
+}
+/* vertical timecode column — visual anchor on the left edge */
+#s1 .tc{
+  position:absolute;
+  left:36px; top:50%;
+  transform:translateY(-50%) rotate(-90deg);
+  transform-origin:left center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.3em;
+  color:var(--td);
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+/* ornament: thin horizontal accent line above eyebrow */
+#s1 .ornament{
+  width:64px; height:2px;
+  background:var(--gl);
+  margin-bottom:28px;
+  box-shadow:0 1px 4px rgba(21,128,61,0.35);
+}
+#s1 .eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:15px;
+  letter-spacing:0.24em;
+  text-transform:uppercase;
+  color:var(--gl);
+  margin-bottom:32px;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+#s1 .eyebrow .dot{
+  width:6px; height:6px; border-radius:50%;
+  background:var(--gl);
+  box-shadow:0 0 6px rgba(21,128,61,0.5);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{opacity:0.6;}
+  50%{opacity:1;}
+}
+#s1 h1{
+  font-size:78px;
+  font-weight:700;
+  line-height:1.05;
+  letter-spacing:-0.03em;
+  color:var(--tx);
+  margin-bottom:28px;
+  max-width:1380px;
+}
+#s1 h1 .accent{color:var(--gl);font-weight:700;}
+#s1 .lede{
+  font-size:25px;
+  color:var(--tm);
+  line-height:1.45;
+  max-width:1120px;
+  margin-bottom:60px;
+  font-weight:400;
+}
+#s1 .meta{
+  display:flex;
+  gap:56px;
+  margin-top:8px;
+  font-family:'IBM Plex Mono',monospace;
+  position:relative;
+}
+#s1 .meta::before{
+  content:'';
+  position:absolute;
+  left:0; top:-18px;
+  width:48px; height:1px;
+  background:var(--bd2);
+}
+#s1 .meta .ml{
+  color:var(--td);
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  font-size:11px;
+  margin-bottom:6px;
+}
+#s1 .meta .mv{
+  color:var(--tx);
+  font-size:16px;
+  font-weight:500;
+}
+
+/* ══════════════════════════════════════
+   PRINT / PDF EXPORT — do not modify without re-testing
+══════════════════════════════════════ */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; }
+  #deck { position: static !important; height: auto !important; display: block !important; }
+  .slide {
+    position: relative !important;
+    inset: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    width: 100% !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    page-break-after: always;
+    break-after: page;
+    page-break-inside: avoid;
+    transition: none !important;
+    animation: none !important;
+  }
+  #s1 { justify-content: center !important; }
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  .slide > *, .slide *::before, .slide *::after { animation: none !important; transition: none !important; }
+  #nav, #bar { display: none !important; }
+}
+
+/* ══════════════════════════════════════
+   PER-SLIDE DENSITY OVERRIDES
+   Add #sN-scoped rules here when a slide overflows.
+   See SKILL.md → "Overflow verification workflow"
+══════════════════════════════════════ */
+/* ── Architecture pipeline (S5) ───────────────────── */
+.pipeline{
+  display:grid;
+  grid-template-columns:1fr 24px 1fr 24px 1fr 24px 1fr;
+  align-items:stretch;
+  gap:0;
+  margin-bottom:18px;
+}
+.pstage{
+  position:relative;
+  padding:16px 18px;
+  border-radius:10px;
+  background:var(--sf);
+  border:1px solid var(--bd);
+  display:flex;
+  flex-direction:column;
+  min-height:118px;
+}
+.pstage .stagenum{
+  position:absolute;
+  top:-11px; left:14px;
+  width:26px; height:26px;
+  border-radius:50%;
+  background:var(--bg);
+  border:1.5px solid currentColor;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px; font-weight:600;
+}
+.pstage .ptitle{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:14px;
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+  font-weight:600;
+}
+.pstage .pdesc{font-size:16px;color:var(--tm);line-height:1.45;}
+.pstage.pc{border-color:var(--cyl);color:var(--cyl);background:var(--bg-c);}
+.pstage.pg{border-color:var(--gl);color:var(--gl);background:var(--bg-g);}
+.pstage.pp{border-color:var(--pul);color:var(--pul);background:var(--bg-p);}
+.pstage.pr{border-color:var(--rl);color:var(--rl);background:var(--bg-r);}
+.pstage .pdesc, .pstage strong{color:var(--tx);}
+/* arrow between stages */
+.parrow{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--bd2);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:18px;
+  position:relative;
+}
+.parrow::before{
+  content:'';
+  position:absolute;
+  left:0; right:0; top:50%;
+  height:1px;
+  background:linear-gradient(90deg, transparent, var(--bd2) 30%, var(--bd2) 70%, transparent);
+}
+.parrow::after{
+  content:'▶';
+  position:relative;
+  z-index:1;
+  background:var(--bg);
+  padding:0 4px;
+  color:var(--gl);
+  font-size:11px;
+}
+/* branch lane below pipeline */
+.plane{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+  position:relative;
+}
+.plane::before{
+  content:'分支';
+  position:absolute;
+  left:-46px; top:50%;
+  transform:translateY(-50%) rotate(-90deg);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:9px;
+  letter-spacing:0.2em;
+  color:var(--td);
+  text-transform:uppercase;
+}
+
+/* References slide (dense, 8 entries) — keep projection-readable */
+#s11 .ref{padding:6px 0;}
+#s11 .rcat{margin-top:9px;margin-bottom:5px;font-size:13.5px;}
+#s11 .rt{font-size:16px;}
+#s11 .rsrc{font-size:14.5px;line-height:1.4;margin-top:2px;}
+#s11 .rl2{font-size:13px;}
+#s11 .shead{margin-bottom:18px;}
+
+/* Mono code/formula container — used in s9 decision logic + s10 formula card */
+.mono-block{font-family:'IBM Plex Mono',monospace;font-size:16px;line-height:1.7;}
+
+/* s7 — branch-lane card body */
+#s7 .plane .card p{font-size:17px;}
+
+/* s8 — detection-mode cards: rule line first, example line second */
+#s8 .card > p:first-of-type{font-size:17.5px;}
+#s8 .card > p + p{font-size:17px;}
+
+/* s13 — roadmap row date column */
+#s13 .flex-row > div + div{font-size:15.5px;}
+
+/* Other slide-specific overrides — add as content grows */
+/* #sN .card{padding:8px 12px;} */
+/* #sN td,#sN th{padding:4px 8px;font-size:12px;} */
+</style>
+</head>
+<body>
+
+<div id="bar" style="width:0%"></div>
+
+<div id="deck">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 1 · COVER
+     Role: Title + sub-title + audience/date
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide active cover-active" id="s1">
+  <div class="tc">{{PROJECT · CODENAME · YYYY.MM}}</div>
+  <div class="ornament"></div>
+  <div class="eyebrow"><span class="dot"></span>{{EYEBROW · e.g. ARCHITECTURE BRIEF}}</div>
+  <h1>{{Main title — full sentence stating the proposal's <span class="accent">thesis</span>}}</h1>
+  <div class="lede">{{One-paragraph lede: who this is for, what it argues, what decision it enables}}</div>
+  <div class="meta">
+    <div><div class="ml">Audience</div><div class="mv">{{stakeholder group}}</div></div>
+    <div><div class="ml">Author</div><div class="mv">{{your name}}</div></div>
+    <div><div class="ml">Date</div><div class="mv">{{YYYY-MM-DD}}</div></div>
+    <div><div class="ml">Version</div><div class="mv">{{v1.0}}</div></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 2 · TL;DR / 結論先行
+     Role: 3–5 bullets stating what the doc argues
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s2">
+  <div class="shead">
+    <div class="scat">TL;DR · 結論先行</div>
+    <h2>{{Headline conclusion of the entire deck — one sentence}}</h2>
+    <div class="sub">{{Supporting evidence summary: scope, metrics, citation anchors}}</div>
+  </div>
+  <div class="flex-col" style="gap:14px">
+    <div class="card tint-g">
+      <div class="ct">點 1 · 核心命題</div>
+      <p>{{The thesis. What does the doc claim?}}</p>
+    </div>
+    <div class="card">
+      <div class="ct">點 2 · 為什麼可行</div>
+      <p>{{Feasibility argument with concrete reference (existing system, paper, vendor)}}</p>
+    </div>
+    <div class="card">
+      <div class="ct">點 3 · 為什麼現在</div>
+      <p>{{Why now? Constraint, deadline, opportunity, regression}}</p>
+    </div>
+    <div class="card">
+      <div class="ct">點 4 · 需要的決策</div>
+      <p>{{What decision does the reader need to make as a result of this doc?}}</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 3 · PROBLEM FRAMING
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s3">
+  <div class="shead">
+    <div class="scat">PROBLEM · 問題盤點</div>
+    <h2>{{The headline: what's broken, quantified}}</h2>
+    <div class="sub">{{Where this evidence comes from — log analysis, incident, benchmark}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>現況痛點</h3>
+      <div class="flex-col">
+        <div class="card tint-r"><div class="ct">痛點 A</div><p>{{...}}</p></div>
+        <div class="card tint-r"><div class="ct">痛點 B</div><p>{{...}}</p></div>
+        <div class="card tint-r"><div class="ct">痛點 C</div><p>{{...}}</p></div>
+      </div>
+    </div>
+    <div>
+      <h3>量化證據</h3>
+      <div class="g2" style="gap:10px;margin-bottom:14px">
+        <div class="stat"><div class="sv">{{N}}</div><div class="sl">{{metric}}</div></div>
+        <div class="stat"><div class="sv">{{N}}</div><div class="sl">{{metric}}</div></div>
+        <div class="stat"><div class="sv">{{N}}</div><div class="sl">{{metric}}</div></div>
+        <div class="stat"><div class="sv">{{N}}</div><div class="sl">{{metric}}</div></div>
+      </div>
+      <div class="ib ibr">
+        <strong>來源：</strong>{{data source / period / sample size}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 4 · SOLUTION THESIS
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s4">
+  <div class="shead">
+    <div class="scat">SOLUTION · 解法主張</div>
+    <h2>{{One-sentence proposal that resolves slide 3's problem}}</h2>
+    <div class="sub">{{Differentiator: why this approach over alternatives}}</div>
+  </div>
+  <div class="g2">
+    <div class="card tint-g">
+      <h3 style="color:var(--gl)">核心主張</h3>
+      <p style="margin-bottom:10px">{{What we will do, in plain language}}</p>
+      <ul>
+        <li>{{Capability 1}}</li>
+        <li>{{Capability 2}}</li>
+        <li>{{Capability 3}}</li>
+      </ul>
+    </div>
+    <div>
+      <h3>已考慮並排除的替代方案</h3>
+      <div class="flex-col">
+        <div class="card"><div class="ct" style="color:var(--rl)">替代 A · 排除</div><p><strong>為何不選：</strong>{{reason}}</p></div>
+        <div class="card"><div class="ct" style="color:var(--rl)">替代 B · 排除</div><p><strong>為何不選：</strong>{{reason}}</p></div>
+        <div class="card"><div class="ct" style="color:var(--aml)">替代 C · 部分採納</div><p><strong>採納範圍：</strong>{{scope}}</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 5 · HERO · The structural thesis made visible
+     Default pattern below: PIPELINE (left-to-right flow + branch lane).
+     Six other hero patterns are available — see references/hero-patterns.md:
+       1. Pipeline       (this one — sequential process)
+       2. Layered stack  (top-to-bottom tiers)
+       3. Quadrant 2×2   (Cartesian comparison)
+       4. Timeline       (chronological — postmortem, roadmap)
+       5. Hub-and-spoke  (one core + N branches)
+       6. Comparison     (us vs them, before vs after)
+       7. Funnel         (top-to-bottom narrowing)
+     Replace .pipeline below with the recipe for your chosen pattern.
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s5">
+  <div class="shead">
+    <div class="scat">{{HERO · e.g. ARCHITECTURE / TIMELINE / POSITIONING}}</div>
+    <h2>{{Headline stating the structural thesis as one sentence}}</h2>
+    <div class="sub">{{Scope · baseline · what this diagram is and is not}}</div>
+  </div>
+  <div class="pipeline">
+    <div class="pstage pc">
+      <div class="stagenum">1</div>
+      <div class="ptitle">S1 · 前處理</div>
+      <div class="pdesc">{{stage 1 summary}}</div>
+    </div>
+    <div class="parrow"></div>
+    <div class="pstage pg">
+      <div class="stagenum">2</div>
+      <div class="ptitle">S2 · 版面判讀</div>
+      <div class="pdesc">{{stage 2 summary}}</div>
+    </div>
+    <div class="parrow"></div>
+    <div class="pstage pp">
+      <div class="stagenum">3</div>
+      <div class="ptitle">S3 · 資訊萃取</div>
+      <div class="pdesc">{{stage 3 summary}}</div>
+    </div>
+    <div class="parrow"></div>
+    <div class="pstage pr">
+      <div class="stagenum">4</div>
+      <div class="ptitle">S4 · 資訊校驗</div>
+      <div class="pdesc">{{stage 4 summary}}</div>
+    </div>
+  </div>
+  <div class="plane" style="margin-top:24px">
+    <div class="card tint-a">
+      <div class="ct" style="color:var(--aml)">支線 A · {{branch name}}</div>
+      <p>{{branch 1 description, integration point}}</p>
+    </div>
+    <div class="card tint-c">
+      <div class="ct" style="color:var(--cyl)">支線 B · {{branch name}}</div>
+      <p>{{branch 2 description, integration point}}</p>
+    </div>
+  </div>
+  <div class="ib" style="margin-top:18px">
+    <strong>S5 · 業務應用：</strong>{{describe how the pipeline output feeds the business}}
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 6 · STAGE DETAIL A (e.g. pre-processing / ingestion)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s6">
+  <div class="shead">
+    <div class="scat">{{DETAIL A · e.g. STAGE / FACTOR / SUB-DOMAIN}}</div>
+    <h2>{{Headline conclusion about the early stages}}</h2>
+    <div class="sub">{{What capabilities the early stages must provide}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>處理步驟</h3>
+      <ol>
+        <li><strong>{{step 1}}</strong> — {{what / output}}</li>
+        <li><strong>{{step 2}}</strong> — {{what / output}}</li>
+        <li><strong>{{step 3}}</strong> — {{what / output}}</li>
+        <li><strong>{{step 4}}</strong> — {{what / output}}</li>
+      </ol>
+    </div>
+    <div>
+      <h3>品質指標 & 失敗模式</h3>
+      <div class="flex-col">
+        <div class="card"><div class="ct">指標 · {{metric name}}</div><p>{{threshold, measurement, fallback}}</p></div>
+        <div class="card"><div class="ct">指標 · {{metric name}}</div><p>{{threshold, measurement, fallback}}</p></div>
+        <div class="card tint-r"><div class="ct" style="color:var(--rl)">失敗模式</div><p>{{what happens, how detected, what action}}</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 7 · STAGE DETAIL B (e.g. core extraction)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s7">
+  <div class="shead">
+    <div class="scat">{{DETAIL B · e.g. CORE MECHANISM / KEY FINDING}}</div>
+    <h2>{{Headline about the core processing stage}}</h2>
+    <div class="sub">{{Approach + measurement criteria}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>方法分層</h3>
+      <div class="flex-col">
+        <div class="card tint-c"><div class="ct" style="color:var(--cyl)">層 1 · {{name}}</div><p>{{what / when used / cost}}</p></div>
+        <div class="card tint-c"><div class="ct" style="color:var(--cyl)">層 2 · {{name}}</div><p>{{what / when used / cost}}</p></div>
+        <div class="card tint-c"><div class="ct" style="color:var(--cyl)">層 3 · {{name}}</div><p>{{what / when used / cost}}</p></div>
+      </div>
+    </div>
+    <div>
+      <h3>關鍵設計選擇</h3>
+      <div class="flex-col">
+        <div class="card"><div class="ct">選擇 A</div><p>{{decision + tradeoff justification}}</p></div>
+        <div class="card"><div class="ct">選擇 B</div><p>{{decision + tradeoff justification}}</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 8 · BRANCH / SPECIALTY A (with comparison table)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s8">
+  <div class="shead">
+    <div class="scat">BRANCH 1 · {{branch name}}</div>
+    <h2>{{Headline conclusion about this branch — what signal it provides at what cost}}</h2>
+    <div class="sub">{{Approach summary + baseline requirement}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>{{N}} 種偵測模式</h3>
+      <div class="flex-col" style="gap:4px">
+        <div class="card">
+          <div class="ct" style="color:var(--rl)">模式 A · 最高信心</div>
+          <p>{{rule, threshold, action}}</p>
+          <p style="color:var(--tm)">{{example}}</p>
+        </div>
+        <div class="card">
+          <div class="ct" style="color:var(--aml)">模式 B · 中等信心</div>
+          <p>{{rule, threshold, action}}</p>
+          <p style="color:var(--tm)">{{example}}</p>
+        </div>
+        <div class="card">
+          <div class="ct" style="color:var(--cyl)">模式 C · 觸發升級</div>
+          <p>{{rule, threshold, escalation}}</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>工具選型</h3>
+      <div class="tw">
+        <table>
+          <thead>
+            <tr><th>工具</th><th>用途</th><th>速度</th><th>授權</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>{{tool}}</td><td>{{purpose}}</td><td>{{ms/unit}}</td><td>{{license}}</td></tr>
+            <tr><td>{{tool}}</td><td>{{purpose}}</td><td>{{ms/unit}}</td><td>{{license}}</td></tr>
+            <tr><td>{{tool}}</td><td>{{purpose}}</td><td>{{ms/unit}}</td><td>{{license}}</td></tr>
+            <tr><td>{{tool}}</td><td>{{purpose}}</td><td>{{ms/unit}}</td><td>{{license}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ib">
+        <strong>Baseline 建立：</strong>{{how to set up the baseline, sample size, storage format}}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 9 · BRANCH / SPECIALTY B (decision tree pattern)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s9">
+  <div class="shead">
+    <div class="scat">BRANCH 2 · {{branch name}}</div>
+    <h2>{{Headline conclusion about branch 2}}</h2>
+    <div class="sub">{{Decision logic summary}}</div>
+  </div>
+  <div class="flex-col" style="gap:8px">
+    <div class="card tint-g">
+      <div class="ct">決策路徑</div>
+      <p class="mono-block">
+        IF {{condition A}} → <strong style="color:var(--gl)">{{action A}}</strong><br>
+        ELSE IF {{condition B}} → <strong style="color:var(--aml)">{{action B}}</strong><br>
+        ELSE IF {{condition C}} → <strong style="color:var(--cyl)">{{action C}}</strong><br>
+        ELSE → <strong style="color:var(--rl)">{{action default}}</strong>
+      </p>
+    </div>
+    <div class="g3">
+      <div class="card"><div class="ct">{{branch metric 1}}</div><p>{{description}}</p></div>
+      <div class="card"><div class="ct">{{branch metric 2}}</div><p>{{description}}</p></div>
+      <div class="card"><div class="ct">{{branch metric 3}}</div><p>{{description}}</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 10 · QUANTITATIVE MODEL (formulas, thresholds)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s10">
+  <div class="shead">
+    <div class="scat">{{MODEL · QUANTITATIVE / FINANCIAL / RISK}}</div>
+    <h2>{{Headline about how the work is quantified}}</h2>
+    <div class="sub">{{Scoring / unit-economics / threshold + calibration source}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>核心公式</h3>
+      <div class="card mono-block" style="margin-bottom:10px">
+        <div style="color:var(--gl);margin-bottom:8px">{{formula name}}</div>
+        score = w1·F1 + w2·F2 + w3·F3<br>
+        where:<br>
+        &nbsp;&nbsp;F1 = {{feature 1}}<br>
+        &nbsp;&nbsp;F2 = {{feature 2}}<br>
+        &nbsp;&nbsp;F3 = {{feature 3}}<br>
+      </div>
+      <div class="ib"><strong>校準資料：</strong>{{source, sample size, period}}</div>
+    </div>
+    <div>
+      <h3>閾值表</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th>分數區間</th><th>判定</th><th>處置</th></tr></thead>
+          <tbody>
+            <tr><td>{{range}}</td><td><span class="b bg">{{verdict}}</span></td><td>{{action}}</td></tr>
+            <tr><td>{{range}}</td><td><span class="b ba">{{verdict}}</span></td><td>{{action}}</td></tr>
+            <tr><td>{{range}}</td><td><span class="b br">{{verdict}}</span></td><td>{{action}}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 11 · REFERENCES (commercial + academic)
+     Citation format: Title (Venue YEAR · Institution · arXiv:ID)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s11">
+  <div class="shead">
+    <div class="scat">{{FOUNDATIONS · EVIDENCE · SOURCES}}</div>
+    <h2>{{Headline asserting the work is grounded in named sources, not vibes}}</h2>
+    <div class="sub">{{Summary: N commercial / academic / standards / interviews — by category}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="rcat">{{Category 1 · e.g. Commercial precedent / Industry sources}}</div>
+      <div class="ref">
+        <div class="rn">1</div>
+        <div>
+          <div class="rt">{{Product name — Vendor}}</div>
+          <div class="rsrc">{{What it does, key feature relevant to your proposal}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{stable-id-or-domain}}</a>
+        </div>
+      </div>
+      <div class="ref">
+        <div class="rn">2</div>
+        <div>
+          <div class="rt">{{Product name — Vendor}}</div>
+          <div class="rsrc">{{description}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{stable-id-or-domain}}</a>
+        </div>
+      </div>
+      <div class="rcat">{{Category 2 · e.g. Academic / Standards / Regulations}}</div>
+      <div class="ref">
+        <div class="rn">3</div>
+        <div>
+          <div class="rt">{{Paper title — short form}} ({{VENUE YEAR · Institution}})</div>
+          <div class="rsrc">{{key contribution + relevance to your proposal}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">arXiv:{{ID}}</a>
+        </div>
+      </div>
+      <div class="ref">
+        <div class="rn">4</div>
+        <div>
+          <div class="rt">{{Paper title}} ({{VENUE YEAR · Institution}})</div>
+          <div class="rsrc">{{description · arXiv:ID}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">arxiv.org/abs/{{ID}}</a>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="rcat">{{Category 3 · e.g. Frameworks / Tools / Data sources}}</div>
+      <div class="ref">
+        <div class="rn">5</div>
+        <div>
+          <div class="rt">{{Framework — origin (License)}}</div>
+          <div class="rsrc">{{what it does, why this not an alternative}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{repo path}}</a>
+        </div>
+      </div>
+      <div class="ref">
+        <div class="rn">6</div>
+        <div>
+          <div class="rt">{{Framework — origin}}</div>
+          <div class="rsrc">{{description}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{path}}</a>
+        </div>
+      </div>
+      <div class="rcat">{{Category 4 · e.g. Methods / Interviews / Reports}}</div>
+      <div class="ref">
+        <div class="rn">7</div>
+        <div>
+          <div class="rt">{{Method / paper}} ({{VENUE YEAR}})</div>
+          <div class="rsrc">{{description}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{stable-id}}</a>
+        </div>
+      </div>
+      <div class="ref">
+        <div class="rn">8</div>
+        <div>
+          <div class="rt">{{Method / paper}} ({{VENUE YEAR}})</div>
+          <div class="rsrc">{{description}}</div>
+          <a class="rl2" href="{{url}}" target="_blank">{{stable-id}}</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 12 · TOOL SELECTION TABLE (the master matrix)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s12">
+  <div class="shead">
+    <div class="scat">{{SELECTION · TOOLS / OPTIONS / VENDORS}}</div>
+    <h2>{{Headline asserting the selection principle — e.g. "Full-stack open-source with viable alternatives at every layer"}}</h2>
+    <div class="sub">{{Selection criteria: licence / cost / risk profile / source}}</div>
+  </div>
+  <!-- COLUMN SCHEMA varies by report type — see references/report-types.md / selection-matrix conventions
+       Architecture: 層 · 工具 · 授權 · 機構 · 用途 · 優先級
+       Strategy:    維度 · 選項 · 成本 · 風險 · ROI · 優先級
+       Postmortem:  領域 · 動作 · 擁有者 · 期限 · 風險 · 優先級
+       Research:    方法 · 樣本 · 工具 · 限制 · 信賴度 · 優先級 -->
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>{{Col 1 · e.g. 層}}</th><th>{{Col 2 · e.g. 工具}}</th><th>{{Col 3 · e.g. 授權}}</th><th>{{Col 4 · e.g. 機構}}</th><th>{{Col 5 · e.g. 用途}}</th><th>優先級</th></tr>
+      </thead>
+      <tbody>
+        <tr class="hi"><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bg">MVP 必備</span></td></tr>
+        <tr class="hi"><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bg">MVP 必備</span></td></tr>
+        <tr class="hi"><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bg">MVP 必備</span></td></tr>
+        <tr><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bc">Phase 1</span></td></tr>
+        <tr><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bc">Phase 1</span></td></tr>
+        <tr><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b ba">Phase 2</span></td></tr>
+        <tr><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td>{{value}}</td><td><span class="b bp">視需求</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 13 · ROADMAP / PHASING
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s13">
+  <div class="shead">
+    <div class="scat">ROADMAP · 落地節奏</div>
+    <h2>{{Headline about the delivery sequence and what gates each phase}}</h2>
+    <div class="sub">{{Total duration + risk-adjusted}}</div>
+  </div>
+  <div class="flex-col" style="gap:10px">
+    <div class="card tint-g">
+      <div class="flex-row" style="justify-content:space-between;margin-bottom:6px">
+        <div><span class="b bg">Phase 0 · MVP</span> <strong style="margin-left:8px">{{N weeks}}</strong></div>
+        <div style="color:var(--tm)">{{date range}}</div>
+      </div>
+      <p>{{deliverable + acceptance criteria}}</p>
+    </div>
+    <div class="card tint-c">
+      <div class="flex-row" style="justify-content:space-between;margin-bottom:6px">
+        <div><span class="b bc">Phase 1</span> <strong style="margin-left:8px">{{N weeks}}</strong></div>
+        <div style="color:var(--tm)">{{date range}}</div>
+      </div>
+      <p>{{deliverable + acceptance criteria}}</p>
+    </div>
+    <div class="card tint-a">
+      <div class="flex-row" style="justify-content:space-between;margin-bottom:6px">
+        <div><span class="b ba">Phase 2</span> <strong style="margin-left:8px">{{N weeks}}</strong></div>
+        <div style="color:var(--tm)">{{date range}}</div>
+      </div>
+      <p>{{deliverable + acceptance criteria}}</p>
+    </div>
+    <div class="g4" style="margin-top:6px">
+      <div class="stat"><div class="sv">{{N}}</div><div class="sl">total weeks</div></div>
+      <div class="stat"><div class="sv">{{N}}</div><div class="sl">key deliverables</div></div>
+      <div class="stat"><div class="sv">{{N}}</div><div class="sl">decision gates</div></div>
+      <div class="stat"><div class="sv">{{N}}</div><div class="sl">FTE est.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 14 · CLOSING · decision asks
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s14">
+  <div class="shead">
+    <div class="scat">NEXT · 決策請求</div>
+    <h2>{{Headline restating what decision is being asked for}}</h2>
+    <div class="sub">{{Owner + by-when}}</div>
+  </div>
+  <div class="g2">
+    <div>
+      <h3>本次需要的決定</h3>
+      <div class="flex-col" style="gap:3px;margin-bottom:8px">
+        <div class="card tint-g">
+          <h3 style="color:var(--gl);margin-bottom:1px">決策 A</h3>
+          <p style="margin-top:1px">{{what · who · by when}}</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:1px">決策 B</h3>
+          <p style="margin-top:1px">{{what · who · by when}}</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:1px">決策 C</h3>
+          <p style="margin-top:1px">{{what · who · by when}}</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3>已準備好的下一步</h3>
+      <ul>
+        <li>{{action 1 — owner — date}}</li>
+        <li>{{action 2 — owner — date}}</li>
+        <li>{{action 3 — owner — date}}</li>
+      </ul>
+      <div class="ib ibc" style="margin-top:12px">
+        <strong>聯絡：</strong>{{author email / channel}}
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<nav id="nav">
+  <button id="prev" aria-label="Previous">&larr;</button>
+  <span id="counter">1 / 14</span>
+  <button id="next" aria-label="Next">&rarr;</button>
+</nav>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+  let idx = 0;
+
+  function show(n){
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      const wasActive = s.classList.contains('active');
+      s.classList.toggle('active', i === idx);
+      // toggle cover-active marker so cover-only animations fire
+      s.classList.toggle('cover-active', i === idx && s.id === 's1');
+      // force animation restart on CHILDREN (keyframes target .slide.active > *)
+      if (i === idx && !wasActive){
+        Array.from(s.children).forEach(child => {
+          child.style.animation = 'none';
+          void child.offsetWidth;
+          child.style.animation = '';
+        });
+      }
+    });
+    counter.textContent = (idx + 1) + ' / ' + slides.length;
+    bar.style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+
+  document.getElementById('prev').onclick = () => show(idx - 1);
+  document.getElementById('next').onclick = () => show(idx + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(idx + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(idx - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>

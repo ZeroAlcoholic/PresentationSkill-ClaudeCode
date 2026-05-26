@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local-only / sandbox
+output/
+.playwright-mcp/
+tmp/
+
+# Secrets — should never appear, but belt-and-braces
+.env
+.env.*
+*.key
+*.pem
+credentials*

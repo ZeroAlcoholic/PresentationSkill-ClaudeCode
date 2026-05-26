@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1748">
+<title>{{POSTER_TITLE}} — Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ── CANVAS: A1 portrait @ 1748×2480 CSS px ── */
+/* Minimal / Business / Event / Announcement one-pager */
+/* Best for: conference announcements, programme summaries, product launches */
+/* Works portrait (default) and landscape — change CSS canvas dims as needed */
+
+:root {
+  --bg: #060d07; --sf: #0c1a0e; --sf2: #0f2113;
+  --bd: #1f3a25; --bd2: #2a5333;
+  --tx: #e8f5ea; --tm: #9fbfa6; --td: #6b8a72;
+  --gl: #4ade80; --aml: #fbbf24; --cyl: #22d3ee;
+  --pul: #a78bfa; --rl: #f87171;
+  --bg-g: rgba(74,222,128,0.06);
+  --bg-c: rgba(34,211,238,0.06);
+  --bg-a: rgba(251,191,36,0.06);
+  --bg-p: rgba(167,139,250,0.06);
+
+  --fs-eyebrow: 18px;
+  --fs-headline: 128px;
+  --fs-subtitle: 38px;
+  --fs-point-title: 28px;
+  --fs-point-body: 22px;
+  --fs-footer: 18px;
+  --fs-date: 48px;
+}
+
+/* For landscape (2480×1748), switch in poster: */
+/* width: 2480px; height: 1748px; --fs-headline: 100px; --fs-subtitle: 30px; */
+
+body.light {
+  --bg: #f8f5f0; --sf: #edeae4; --sf2: #e4e0d8;
+  --bd: #c4bfb4; --bd2: #a09890;
+  --tx: #1a1a14; --tm: #4a4a3a; --td: #8a8a72;
+  --gl: #16a34a; --aml: #d97706; --cyl: #0891b2;
+  --pul: #7c3aed; --rl: #dc2626;
+  --bg-g: rgba(22,163,74,0.08);
+  --bg-c: rgba(8,145,178,0.08);
+  --bg-a: rgba(217,119,6,0.08);
+  --bg-p: rgba(124,58,237,0.08);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--tx);
+  font-family: 'IBM Plex Sans', 'Noto Sans TC', 'Helvetica Neue', sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  /* CJK typography */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  line-break: strict;
+  hyphens: none;
+  background-image:
+    radial-gradient(ellipse 100% 50% at top right, rgba(74,222,128,0.06), transparent 60%),
+    radial-gradient(ellipse 80% 60% at 80% 80%, rgba(34,211,238,0.04), transparent 60%);
+}
+
+/* ── POSTER CANVAS ── */
+.poster {
+  width: 1748px;
+  height: 2480px;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto auto;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 36px 64px 28px;
+  border-bottom: 1px solid var(--bd);
+}
+.eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gl);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.eyebrow .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--gl);
+  box-shadow: 0 0 12px var(--gl);
+}
+.org-line {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  letter-spacing: 0.1em;
+  color: var(--td);
+  text-transform: uppercase;
+}
+
+/* ── HEADLINE BLOCK ── */
+.headline-block {
+  padding: 64px 64px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border-bottom: 2px solid var(--bd2);
+}
+.main-headline {
+  font-size: var(--fs-headline);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+  color: var(--tx);
+  text-wrap: balance;
+  word-break: keep-all;
+}
+.main-headline .accent { color: var(--gl); }
+.main-headline .accent-cyan { color: var(--cyl); }
+.main-headline .accent-amber { color: var(--aml); }
+.subtitle {
+  font-size: var(--fs-subtitle);
+  color: var(--tm);
+  line-height: 1.45;
+  max-width: 1400px;
+  font-weight: 400;
+  word-break: break-word;
+}
+
+/* ── VISUAL ZONE ── */
+.visual-zone {
+  margin: 0 64px;
+  border: 1px dashed var(--bd2);
+  border-radius: 12px;
+  background: var(--sf);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 480px;
+  overflow: hidden;
+  position: relative;
+}
+.visual-zone img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+}
+.visual-placeholder {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--td);
+  text-align: center;
+}
+.visual-placeholder .vp-title {
+  font-size: 20px;
+  color: var(--tm);
+  margin-top: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ── KEY POINTS ── */
+.points-section {
+  padding: 40px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.points-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--td);
+}
+.points-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+.point-card {
+  background: var(--sf);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+.point-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.point-card:nth-child(1)::before { background: var(--gl); }
+.point-card:nth-child(2)::before { background: var(--cyl); }
+.point-card:nth-child(3)::before { background: var(--pul); }
+.point-num {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--td);
+}
+.point-card:nth-child(1) .point-num { color: var(--gl); }
+.point-card:nth-child(2) .point-num { color: var(--cyl); }
+.point-card:nth-child(3) .point-num { color: var(--pul); }
+.point-title {
+  font-size: var(--fs-point-title);
+  font-weight: 600;
+  color: var(--tx);
+  line-height: 1.25;
+}
+.point-body {
+  font-size: var(--fs-point-body);
+  color: var(--tm);
+  line-height: 1.6;
+}
+
+/* ── DATE / EVENT STRIP (optional — remove if not event-type) ── */
+.event-strip {
+  margin: 0 64px;
+  background: var(--bg-g);
+  border: 1px solid var(--bd2);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 40px;
+  gap: 32px;
+  flex-shrink: 0;
+}
+.event-date {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: var(--fs-date);
+  font-weight: 700;
+  color: var(--gl);
+  letter-spacing: -0.01em;
+}
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.event-name {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--tx);
+}
+.event-location {
+  font-size: 22px;
+  color: var(--tm);
+}
+.event-badge {
+  background: var(--gl);
+  color: #060d07;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  font-size: 17px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ── FOOTER ── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 64px;
+  border-top: 1px solid var(--bd);
+  gap: 32px;
+  flex-shrink: 0;
+}
+.footer-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.footer-source {
+  font-size: var(--fs-footer);
+  color: var(--td);
+  line-height: 1.4;
+}
+.footer-contact {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 16px;
+  color: var(--cyl);
+}
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
+}
+.qr-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.qr-box {
+  width: 80px; height: 80px;
+  background: var(--sf);
+  border: 1px solid var(--bd2);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--td);
+  overflow: hidden;
+}
+.qr-url {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--cyl);
+  text-align: center;
+  max-width: 100px;
+  word-break: break-all;
+}
+
+/* ── PRINT ── */
+@page { size: 594mm 841mm; margin: 0; }
+@media print {
+  html, body { width: 594mm; height: 841mm; margin: 0; padding: 0; overflow: hidden; }
+  body { background: var(--bg) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .poster {
+    position: fixed !important; top: 0 !important; left: 0 !important;
+    width: 1748px !important; height: 2480px !important;
+    transform: scale(1.2843) !important; transform-origin: 0 0 !important;
+    overflow: hidden !important;
+  }
+  .poster * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<!-- Add class="light" to body for light/print-friendly theme -->
+
+<div class="poster">
+
+  <!-- ── TOP BAR ── -->
+  <div class="top-bar">
+    <div class="eyebrow"><span class="dot"></span>{{CATEGORY · CONFERENCE NAME · EVENT TYPE · 活動類型}}</div>
+    <div class="org-line">{{Organization · Institution · Company Name}}</div>
+  </div>
+
+  <!-- ── HEADLINE BLOCK ── -->
+  <div class="headline-block">
+    <div class="main-headline">{{Big<br><span class="accent">Headline</span><br>Here}}</div>
+    <div class="subtitle">{{One sentence that explains what this is about, for whom, and why it matters. Clear and direct.}}</div>
+  </div>
+
+  <!-- ── VISUAL ZONE ── -->
+  <div class="visual-zone">
+    <!-- OPTION A: Image -->
+    <!-- <img src="./your-image.png" alt="{{Image description}}"> -->
+
+    <!-- OPTION B: Placeholder (remove when image added) -->
+    <div class="visual-placeholder">
+      [ VISUAL ZONE ]
+      <div class="vp-title">{{Replace with chart, image, diagram, or infographic}}</div>
+    </div>
+
+    <!-- OPTION C: Inline SVG chart or data visualization -->
+    <!-- <svg width="1400" height="440">...</svg> -->
+  </div>
+
+  <!-- ── KEY POINTS ── -->
+  <div class="points-section">
+    <div class="points-label">Key Points · 重點</div>
+    <div class="points-grid">
+      <div class="point-card">
+        <div class="point-num">01</div>
+        <div class="point-title">{{Point 1 Title}}</div>
+        <div class="point-body">{{2–3 sentences explaining this point. Be specific and concrete.}}</div>
+      </div>
+      <div class="point-card">
+        <div class="point-num">02</div>
+        <div class="point-title">{{Point 2 Title}}</div>
+        <div class="point-body">{{2–3 sentences explaining this point.}}</div>
+      </div>
+      <div class="point-card">
+        <div class="point-num">03</div>
+        <div class="point-title">{{Point 3 Title}}</div>
+        <div class="point-body">{{2–3 sentences explaining this point.}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EVENT / DATE STRIP (optional — remove for non-event posters) ── -->
+  <div class="event-strip">
+    <div class="event-date">{{DD MMM YYYY}}</div>
+    <div class="event-details">
+      <div class="event-name">{{Event Name or Programme Title}}</div>
+      <div class="event-location">{{Venue · City · Room/Hall}}</div>
+    </div>
+    <div class="event-badge">{{Register / Learn More / Join Us}}</div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    <div class="footer-left">
+      <div class="footer-source">{{Source / Reference: Author (Year). Title. Publication.}}</div>
+      <div class="footer-contact">{{contact@email.com · website.com}}</div>
+    </div>
+    <div class="footer-right">
+      <div class="qr-block">
+        <div class="qr-box">
+          <!-- Insert QR SVG here -->
+          <span>QR</span>
+        </div>
+        <div class="qr-url">{{short URL}}</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DECK_TITLE}} — One-Page Memo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#060d07; --sf:#0c1a0e; --sf2:#0f2113;
+  --bd:#1f3a25; --bd2:#2a5333;
+  --tx:#e8f5ea; --tm:#9fbfa6; --td:#6b8a72;
+  --gl:#4ade80; --aml:#fbbf24; --cyl:#22d3ee; --pul:#a78bfa; --rl:#f87171;
+  --bg-g:#0a1f10; --bg-a:#1a1408; --bg-c:#08141a; --bg-p:#120e1f; --bg-r:#1a0b0b;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg);
+  color:var(--tx);
+  font-family:'IBM Plex Sans','Noto Sans TC','Helvetica Neue',sans-serif;
+  font-size:18px;
+  line-height:1.55;
+  letter-spacing:0.005em;
+  font-variant-numeric:tabular-nums;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse at top right, rgba(74,222,128,0.05), transparent 60%),
+    radial-gradient(ellipse at bottom left, rgba(34,211,238,0.03), transparent 60%);
+}
+.slide{
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  padding:46px 68px 48px;
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:24px;
+  overflow:hidden;
+}
+/* Header */
+.head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--bd);
+  gap:32px;
+}
+.head .left{flex:1;}
+.eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  color:var(--gl);
+  margin-bottom:14px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.eyebrow .dot{
+  width:6px; height:6px; border-radius:50%;
+  background:var(--gl);
+  box-shadow:0 0 8px var(--gl);
+}
+h1{
+  font-size:44px;
+  font-weight:700;
+  line-height:1.15;
+  letter-spacing:-0.02em;
+  color:var(--tx);
+  margin-bottom:10px;
+}
+h1 .accent{color:var(--gl);}
+.sub{
+  font-size:17px;
+  color:var(--tm);
+  line-height:1.5;
+  max-width:1100px;
+}
+.head .meta{
+  font-family:'IBM Plex Mono',monospace;
+  text-align:right;
+  flex-shrink:0;
+}
+.head .meta .ml{
+  color:var(--td);
+  font-size:11px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  margin-bottom:2px;
+}
+.head .meta .mv{
+  color:var(--tx);
+  font-size:15px;
+  font-weight:500;
+  margin-bottom:8px;
+}
+/* Body — 3-column split: TL;DR · Hero · Detail */
+.body{
+  display:grid;
+  grid-template-columns:1fr 1.4fr 1fr;
+  gap:20px;
+  min-height:0;
+}
+.body > *{min-height:0;overflow:hidden;}
+h3{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13.5px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--gl);
+  margin-bottom:13px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--bd);
+}
+.col-tldr h3{color:var(--gl);}
+.col-hero h3{color:var(--cyl);}
+.col-detail h3{color:var(--pul);}
+.tldr-list{display:flex;flex-direction:column;gap:10px;}
+.tldr-item{
+  padding:13px 17px;
+  border-left:3px solid var(--gl);
+  background:var(--bg-g);
+  border-radius:0 6px 6px 0;
+  font-size:17px;
+  line-height:1.5;
+}
+.tldr-item:nth-child(2){border-left-color:var(--cyl);background:var(--bg-c);}
+.tldr-item:nth-child(3){border-left-color:var(--aml);background:var(--bg-a);}
+.tldr-item strong{color:var(--tx);}
+/* Hero (centre column) — minimal pipeline */
+.minipipe{display:flex;flex-direction:column;gap:10px;}
+.minipipe .stage{
+  position:relative;
+  padding:13px 17px;
+  border:1px solid var(--bd);
+  background:var(--sf);
+  border-radius:8px;
+  font-size:16.5px;
+}
+.minipipe .stage .num{
+  display:inline-block;
+  width:24px; height:24px;
+  border-radius:50%;
+  border:1.5px solid currentColor;
+  text-align:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;
+  line-height:22px;
+  margin-right:10px;
+  font-weight:600;
+}
+.minipipe .stage.s1{border-color:var(--cyl);color:var(--cyl);}
+.minipipe .stage.s2{border-color:var(--gl);color:var(--gl);}
+.minipipe .stage.s3{border-color:var(--pul);color:var(--pul);}
+.minipipe .stage.s4{border-color:var(--rl);color:var(--rl);}
+.minipipe .stage .label{color:var(--tx);}
+.minipipe .stage .desc{
+  display:block;
+  margin-top:6px;
+  margin-left:34px;
+  font-size:15px;
+  color:var(--tm);
+  line-height:1.45;
+}
+.minipipe .gap{
+  height:8px;
+  position:relative;
+}
+.minipipe .gap::after{
+  content:'▼';
+  position:absolute;
+  left:18px; top:-4px;
+  color:var(--gl);
+  font-size:10px;
+}
+/* Detail (right column) — key metrics + ask */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.metric{
+  padding:14px 16px;
+  background:var(--sf);
+  border:1px solid var(--bd);
+  border-radius:8px;
+  position:relative;
+  overflow:hidden;
+}
+.metric::before{
+  content:'';
+  position:absolute;
+  top:0; right:0;
+  width:3px; height:28px;
+  background:var(--pul);
+}
+.metric .mv{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:28px;
+  font-weight:600;
+  color:var(--pul);
+  line-height:1;
+}
+.metric .ml{
+  display:block;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--tm);
+  margin-top:7px;
+}
+.ask{
+  padding:14px 17px;
+  border-left:3px solid var(--cyl);
+  background:var(--bg-c);
+  border-radius:0 6px 6px 0;
+  font-size:16px;
+  line-height:1.5;
+}
+.ask strong{color:var(--cyl);display:block;margin-bottom:6px;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;}
+/* References strip (bottom) */
+.refs{
+  border-top:1px solid var(--bd);
+  padding-top:12px;
+  display:grid;
+  grid-template-columns:auto repeat(4, 1fr);
+  gap:14px;
+  align-items:start;
+}
+.refs .label{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  color:var(--td);
+  padding-top:2px;
+}
+.refrow{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  font-size:14px;
+  line-height:1.4;
+}
+.refrow .num{
+  flex-shrink:0;
+  width:22px; height:22px;
+  border:1px solid var(--gl);
+  color:var(--gl);
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+}
+.refrow .rtxt strong{color:var(--tx);display:block;font-size:14.5px;line-height:1.35;}
+.refrow .rtxt .src{color:var(--tm);font-size:13px;line-height:1.35;}
+.refrow .rtxt a{color:var(--cyl);font-family:'IBM Plex Mono',monospace;font-size:12.5px;text-decoration:none;}
+
+/* Print: A4 landscape, exact one page */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; }
+  .slide {
+    position: relative !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100vh !important;
+    page-break-after: avoid;
+  }
+  /* Kill ALL animations + transitions on descendants to prevent partial-rendered first paint */
+  .slide > *, .slide *::before, .slide *::after {
+    animation: none !important; transition: none !important;
+    opacity: 1 !important; transform: none !important;
+  }
+}
+
+/* Entrance animation (screen only) */
+.slide > * { animation: rise 600ms cubic-bezier(0.16,1,0.3,1) both; }
+.slide > *:nth-child(1) { animation-delay: 0ms; }
+.slide > *:nth-child(2) { animation-delay: 120ms; }
+.slide > *:nth-child(3) { animation-delay: 240ms; }
+@keyframes rise { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:translateY(0); } }
+@media print { .slide > *{ animation:none !important; opacity:1 !important; transform:none !important; } }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- ─── HEADER ─── -->
+  <div class="head">
+    <div class="left">
+      <div class="eyebrow"><span class="dot"></span>{{EYEBROW · e.g. ONE-PAGE MEMO · ARCHITECTURE BRIEF}}</div>
+      <h1>{{Headline as a complete sentence — the <span class="accent">conclusion</span> of the doc}}</h1>
+      <div class="sub">{{Sub-title: who is this for, what decision does it enable, what's the proof in one sentence}}</div>
+    </div>
+    <div class="meta">
+      <div class="ml">Author</div><div class="mv">{{name}}</div>
+      <div class="ml">Date</div><div class="mv">{{YYYY-MM-DD}}</div>
+      <div class="ml">Version</div><div class="mv">{{v1.0}}</div>
+    </div>
+  </div>
+
+  <!-- ─── BODY · 3 columns ─── -->
+  <div class="body">
+
+    <!-- Column 1 · TL;DR -->
+    <div class="col-tldr">
+      <h3>TL;DR · 結論</h3>
+      <div class="tldr-list">
+        <div class="tldr-item"><strong>{{Point 1 heading}} · </strong>{{the thesis in one sentence}}</div>
+        <div class="tldr-item"><strong>{{Point 2 heading}} · </strong>{{why feasible / what evidence}}</div>
+        <div class="tldr-item"><strong>{{Point 3 heading}} · </strong>{{why now / the constraint or trigger}}</div>
+      </div>
+    </div>
+
+    <!-- Column 2 · Hero (pipeline-by-default; swap pattern as needed) -->
+    <div class="col-hero">
+      <h3>{{HERO · ARCHITECTURE / TIMELINE / POSITIONING}}</h3>
+      <div class="minipipe">
+        <div class="stage s1"><span class="num">1</span><span class="label">{{Stage 1 name}}</span><span class="desc">{{one-line description}}</span></div>
+        <div class="gap"></div>
+        <div class="stage s2"><span class="num">2</span><span class="label">{{Stage 2 name}}</span><span class="desc">{{one-line description}}</span></div>
+        <div class="gap"></div>
+        <div class="stage s3"><span class="num">3</span><span class="label">{{Stage 3 name}}</span><span class="desc">{{one-line description}}</span></div>
+        <div class="gap"></div>
+        <div class="stage s4"><span class="num">4</span><span class="label">{{Stage 4 name}}</span><span class="desc">{{one-line description}}</span></div>
+      </div>
+    </div>
+
+    <!-- Column 3 · Metrics + Ask -->
+    <div class="col-detail">
+      <h3>關鍵指標 · 決策請求</h3>
+      <div class="metrics">
+        <div class="metric"><span class="mv">{{N}}</span><span class="ml">{{metric 1}}</span></div>
+        <div class="metric"><span class="mv">{{N}}</span><span class="ml">{{metric 2}}</span></div>
+        <div class="metric"><span class="mv">{{N}}</span><span class="ml">{{metric 3}}</span></div>
+        <div class="metric"><span class="mv">{{N}}</span><span class="ml">{{metric 4}}</span></div>
+      </div>
+      <div class="ask">
+        <strong>需要的決定</strong>
+        {{What decision · who · by when}}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── REFERENCES STRIP ─── -->
+  <div class="refs">
+    <div class="label">SOURCES /<br>佐證</div>
+    <div class="refrow"><div class="num">1</div><div class="rtxt"><strong>{{Title}}</strong><span class="src">{{Venue YEAR · Institution}}</span><a href="{{url}}">{{stable-id}}</a></div></div>
+    <div class="refrow"><div class="num">2</div><div class="rtxt"><strong>{{Title}}</strong><span class="src">{{Venue YEAR · Institution}}</span><a href="{{url}}">{{stable-id}}</a></div></div>
+    <div class="refrow"><div class="num">3</div><div class="rtxt"><strong>{{Title}}</strong><span class="src">{{Venue YEAR · Institution}}</span><a href="{{url}}">{{stable-id}}</a></div></div>
+    <div class="refrow"><div class="num">4</div><div class="rtxt"><strong>{{Title}}</strong><span class="src">{{Venue YEAR · Institution}}</span><a href="{{url}}">{{stable-id}}</a></div></div>
+  </div>
+
+</div>
+
+</body>
+</html>
