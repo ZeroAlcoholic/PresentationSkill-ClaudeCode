@@ -6,6 +6,22 @@ Three checks turn the SKILL's `MUST` rules from prose into something falsifiable
 
 ---
 
+## These probes are NECESSARY, not SUFFICIENT — a human/perceptual pass is still required
+
+The probes are numeric and binary (px ≥ floor? overshoot ≤ 0? token present?). They catch **mechanical** defects fast and repeatably. They do **NOT** certify that a human can comfortably read the poster, because machine metrics and human perception diverge:
+
+- **Metrics are proxies calibrated for another context.** WCAG's 4.5:1 contrast minimum assumes arm's-length screen reading, not a 1.5 m poster. A real case from this template: a description line passed WCAG contrast (5.15:1 > 4.5) *and* had no overflow, yet was hard to read — because at 1.5 m, **angular size** (≈ px ÷ distance) was too small. Contrast was fine; size for the distance was not.
+- **Probes measure one dimension; humans integrate many.** Size, contrast, distance, crowding, and fatigue combine in perception, and the eye compares each element against its neighbours. No single-axis check sees that.
+- **"Reader intent" is semantic, not visual.** Whether a string is a *must-read sentence* or a *scan-and-ignore label* decides whether small is a defect or fine — and that is a meaning judgment a pixel probe cannot make.
+
+**Therefore, after the probes pass, you MUST still do a perceptual pass:** screenshot the poster, view it as a human would, and judge reading comfort, hierarchy, and whether anything important is buried. The probes gate mechanics; the screenshot/human review gates perception. Declaring "done" on probes alone is the failure mode that ships strain.
+
+**Reading-content vs chrome (the size rule the probes can't infer):**
+- **Reading content** — any full sentence/clause the reader must read to get meaning (`.content-card p`, `.hero-sub`, `.hero-stat-desc`, stat descriptions, flow-step descriptions). At A1/1.5 m these **SHOULD** sit ≥ 18px and use `--tm` or `--tx` (not the dim `--td`). The body floor (26 / 22) still binds the primary body surfaces.
+- **Chrome** — labels/tags scanned not read (eyebrows, `.role`, ALL-CAPS mono labels, footer citations). These **MAY** stay small (≥ 15–17px); they are reference, not reading.
+
+---
+
 ## Quick verify — two pastes total
 
 Don't run the three blocks below one at a time. Use these two:
