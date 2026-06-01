@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{DECK_TITLE}} — Brief (v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   DESIGN TOKENS — v1 base + v2 additions
+   (see references/design-system-v2.md)
+══════════════════════════════════════ */
+:root{
+  /* v1 base — unchanged */
+  --bg:#060d07; --sf:#0c1a0e; --sf2:#0f2113;
+  --bd:#1f3a25; --bd2:#2a5333;
+  --tx:#e8f5ea; --tm:#9fbfa6; --td:#6b8a72;
+  --gl:#4ade80; --aml:#fbbf24; --cyl:#22d3ee;
+  --pul:#a78bfa; --rl:#f87171;
+  --bg-g:#0a1f10; --bg-a:#1a1408; --bg-c:#08141a; --bg-p:#120e1f; --bg-r:#1a0b0b;
+
+  /* v2 type roles */
+  --fs-display:84px;
+  --fs-micro:11px;
+  --fs-marg:10px;
+
+  /* v2 rules */
+  --w-rule:1px;
+  --w-rule-heavy:2px;
+
+  /* v2 spacing (8px grid strict) */
+  --s-1:4px;  --s-2:8px;  --s-3:12px; --s-4:16px;
+  --s-5:24px; --s-6:32px; --s-7:48px; --s-8:64px;
+
+  /* v2 marginalia */
+  --marg-fg:rgba(159,191,166,0.42);
+  --marg-rule:rgba(31,58,37,0.55);
+
+  /* v2 cards */
+  --hero-radius:4px;
+  --hero-shadow:0 0 0 1px var(--bg), 0 8px 32px rgba(74,222,128,0.10);
+  --quiet-bord:1px solid var(--bd);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--tx);
+  font-family:'IBM Plex Sans','Noto Sans TC','Helvetica Neue',sans-serif;
+  font-size:18px; line-height:1.55; letter-spacing:0.005em;
+  font-variant-numeric:tabular-nums;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  background-image:
+    radial-gradient(ellipse at top, rgba(74,222,128,0.035), transparent 60%),
+    radial-gradient(ellipse at bottom right, rgba(34,211,238,0.02), transparent 50%);
+}
+
+/* ══════════════════════════════════════
+   DECK CHASSIS — v2 keeps print-page feel
+══════════════════════════════════════ */
+#deck{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;}
+.slide{
+  position:absolute;inset:0;width:100vw;height:100vh;
+  padding:64px 96px 56px;        /* v2: more generous top, room for marginalia */
+  opacity:0;pointer-events:none;
+  transition:opacity 200ms ease;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.slide.active{opacity:1;pointer-events:auto;}
+
+.slide.active > .slide-body > *{
+  animation:reveal-up 540ms cubic-bezier(0.16,1,0.3,1) both;
+}
+.slide.active > .slide-body > *:nth-child(2){animation-delay:80ms;}
+.slide.active > .slide-body > *:nth-child(3){animation-delay:160ms;}
+.slide.active > .slide-body > *:nth-child(4){animation-delay:240ms;}
+@keyframes reveal-up{
+  from{opacity:0;transform:translateY(10px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@media print {
+  .slide.active *{
+    animation:none !important; opacity:1 !important; transform:none !important;
+  }
+}
+
+/* Progress + nav */
+#bar{position:fixed;top:0;left:0;height:2px;
+  background:var(--gl);z-index:100;
+  transition:width 200ms ease;box-shadow:0 0 8px rgba(74,222,128,0.5);}
+#nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+  display:flex;align-items:center;gap:14px;padding:6px 14px;
+  background:rgba(15,33,19,0.85);backdrop-filter:blur(8px);
+  border:1px solid var(--bd);border-radius:2px;z-index:100;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--tm);
+  letter-spacing:0.12em;}
+#nav button{width:24px;height:24px;background:transparent;
+  border:1px solid var(--bd2);border-radius:0;color:var(--tx);
+  cursor:pointer;font-size:12px;transition:all 120ms;
+  display:flex;align-items:center;justify-content:center;}
+#nav button:hover{background:var(--gl);color:var(--bg);border-color:var(--gl);}
+
+/* ══════════════════════════════════════
+   MARGINALIA — appears on every slide
+══════════════════════════════════════ */
+.slide-num{
+  position:absolute;top:24px;right:32px;z-index:5;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);letter-spacing:0.22em;
+  color:var(--td);
+}
+.slide-num .of{color:var(--bd2);margin:0 4px;}
+.slide-num .now{color:var(--tm);}
+
+.slide-fp{
+  position:absolute;bottom:22px;left:96px;z-index:5;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);letter-spacing:0.14em;
+  color:var(--td);
+}
+.slide-fp .dot{color:var(--bd2);margin:0 6px;}
+
+.slide-role{
+  position:absolute;left:22px;top:50%;z-index:5;
+  transform:translateY(-50%) rotate(-90deg);
+  transform-origin:left center;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-marg);letter-spacing:0.42em;
+  text-transform:uppercase;color:var(--marg-fg);
+  white-space:nowrap;
+}
+
+.slide-rule{
+  height:1px;width:100%;background:var(--marg-rule);
+  margin-bottom:var(--s-5);
+}
+
+/* ══════════════════════════════════════
+   SHEAD — v2: smaller eyebrow, no hard border
+══════════════════════════════════════ */
+.shead{margin-bottom:var(--s-5);flex:0 0 auto;}
+.shead .scat{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);font-weight:600;
+  letter-spacing:0.26em;text-transform:uppercase;
+  color:var(--gl);margin-bottom:var(--s-3);
+  display:flex;align-items:center;gap:10px;
+}
+.shead .scat::before{
+  content:'';width:18px;height:1px;background:var(--gl);
+  box-shadow:0 0 6px rgba(74,222,128,0.6);
+}
+.shead h2{
+  font-size:44px;font-weight:600;line-height:1.16;
+  letter-spacing:-0.018em;color:var(--tx);
+  margin-bottom:var(--s-3);max-width:60ch;
+}
+.shead .sub{
+  font-size:17px;color:var(--tm);font-weight:400;
+  line-height:1.55;max-width:80ch;
+}
+
+/* ══════════════════════════════════════
+   SLIDE-BODY wrapper — vertical-fill contract (v1 carry-over)
+   Header / rule fix at top, body grows AND distributes inner content,
+   footer card sticks to bottom.
+══════════════════════════════════════ */
+.slide-body{
+  flex:1 1 auto;
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+.slide-body > .shead,
+.slide-body > .cover-mast { flex:0 0 auto; margin-bottom:var(--s-3); }
+.slide-body > .slide-rule { flex:0 0 auto; margin-bottom:var(--s-5); }
+.slide-body > .fig-wrap,
+.slide-body > .ref-grid,
+.slide-body > .g-feature { flex:1 1 0; min-height:0; }
+/* Footer card (e.g. card-hero punchline on hero slide) — body above grows
+   so this anchors at the bottom naturally; margin keeps breathing room. */
+.slide-body > .card-hero { flex:0 0 auto; margin-top:var(--s-6); }
+
+/* Inner distribution — grown wrappers must place their own content,
+   not let it hug the top of the available space. */
+.slide-body > .fig-wrap{
+  display:flex;flex-direction:column;justify-content:center;
+}
+.slide-body > .ref-grid{ grid-template-rows:1fr; }
+.slide-body > .ref-grid > *{
+  display:flex;flex-direction:column;justify-content:space-around;
+  min-height:0;
+}
+.slide-body > .g-feature{ align-content:center; }
+
+/* ══════════════════════════════════════
+   v2 CARDS — hero / quiet / default
+══════════════════════════════════════ */
+.card-hero{
+  background:var(--sf);
+  border:var(--w-rule-heavy) solid var(--gl);
+  border-radius:var(--hero-radius);
+  padding:var(--s-6) var(--s-7);
+  box-shadow:var(--hero-shadow);
+  position:relative;
+}
+.card-hero[data-fig]::before{
+  content:'FIG. ' attr(data-fig);
+  position:absolute;top:-9px;left:24px;
+  background:var(--bg);padding:0 10px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);font-weight:600;
+  letter-spacing:0.22em;color:var(--gl);
+}
+.card-hero .ch-eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;letter-spacing:0.2em;
+  text-transform:uppercase;color:var(--gl);
+  margin-bottom:var(--s-3);
+}
+.card-hero .ch-headline{
+  font-size:var(--fs-display);
+  line-height:1.04;letter-spacing:-0.022em;
+  font-weight:600;color:var(--tx);
+}
+.card-hero .ch-headline .accent{color:var(--gl);}
+.card-hero .ch-body{
+  font-size:17px;color:var(--tm);
+  line-height:1.55;max-width:62ch;
+  margin-top:var(--s-4);
+}
+
+/* Tint variants on hero */
+.card-hero.h-a{border-color:var(--aml);}
+.card-hero.h-a[data-fig]::before{color:var(--aml);}
+.card-hero.h-a .ch-eyebrow{color:var(--aml);}
+.card-hero.h-a .ch-headline .accent{color:var(--aml);}
+.card-hero.h-c{border-color:var(--cyl);}
+.card-hero.h-c[data-fig]::before{color:var(--cyl);}
+.card-hero.h-c .ch-eyebrow{color:var(--cyl);}
+.card-hero.h-c .ch-headline .accent{color:var(--cyl);}
+.card-hero.h-p{border-color:var(--pul);}
+.card-hero.h-p[data-fig]::before{color:var(--pul);}
+.card-hero.h-p .ch-eyebrow{color:var(--pul);}
+.card-hero.h-p .ch-headline .accent{color:var(--pul);}
+.card-hero.h-r{border-color:var(--rl);}
+.card-hero.h-r[data-fig]::before{color:var(--rl);}
+.card-hero.h-r .ch-eyebrow{color:var(--rl);}
+.card-hero.h-r .ch-headline .accent{color:var(--rl);}
+
+.card-quiet{
+  background:transparent;border:none;border-radius:0;
+  border-top:var(--quiet-bord);
+  padding:var(--s-4) 0 var(--s-2);
+}
+.card-quiet .cq-eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--td);
+  margin-bottom:var(--s-2);
+  display:flex;align-items:baseline;gap:var(--s-2);
+}
+.card-quiet .cq-eyebrow .num{color:var(--gl);font-weight:600;}
+.card-quiet .cq-eyebrow.cq-a .num{color:var(--aml);}
+.card-quiet .cq-eyebrow.cq-c .num{color:var(--cyl);}
+.card-quiet .cq-eyebrow.cq-r .num{color:var(--rl);}
+.card-quiet .cq-eyebrow.cq-p .num{color:var(--pul);}
+.card-quiet .cq-body{
+  font-size:17px;color:var(--tm);line-height:1.6;
+}
+.card-quiet .cq-body strong{color:var(--tx);font-weight:500;}
+
+/* Grid: 1 hero + column of quiets */
+.g-feature{
+  display:grid;grid-template-columns:1.7fr 1fr;
+  gap:var(--s-7);align-items:start;
+}
+.g-feature .col-quiet{
+  display:flex;flex-direction:column;
+}
+
+/* ══════════════════════════════════════
+   COVER-SPECIFIC (S1)
+══════════════════════════════════════ */
+#s1 .cover-mast{
+  margin-bottom:var(--s-6);
+}
+#s1 .cover-mast .eyebrow{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;letter-spacing:0.28em;
+  text-transform:uppercase;color:var(--gl);
+  margin-bottom:var(--s-5);
+  display:flex;align-items:center;gap:var(--s-3);
+}
+#s1 .cover-mast .eyebrow .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--gl);
+  box-shadow:0 0 8px var(--gl);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+#s1 .cover-mast .eyebrow .div{
+  width:1px;height:11px;background:var(--bd2);margin:0 var(--s-2);
+}
+@keyframes pulse{0%,100%{opacity:0.55;}50%{opacity:1;}}
+#s1 .cover-mast h1{
+  font-size:var(--fs-display);
+  line-height:1.04;letter-spacing:-0.024em;
+  font-weight:600;color:var(--tx);
+  margin-bottom:var(--s-5);max-width:22ch;
+}
+#s1 .cover-mast h1 .accent{
+  color:var(--gl);position:relative;
+}
+#s1 .cover-mast h1 .accent::after{
+  content:'';position:absolute;left:0;right:0;bottom:-6px;
+  height:1px;background:var(--gl);
+  box-shadow:0 0 6px rgba(74,222,128,0.55);
+}
+#s1 .cover-mast .lede{
+  font-size:20px;color:var(--tm);line-height:1.55;
+  font-weight:300;max-width:64ch;
+}
+
+/* ══════════════════════════════════════
+   MINI PIPELINE (S2) — v2 tighter, with figure label container
+══════════════════════════════════════ */
+.fig-wrap{position:relative;padding-top:var(--s-3);}
+.fig-wrap[data-fig]::before{
+  content:'FIG. ' attr(data-fig) ' · ' attr(data-cap);
+  position:absolute;top:-6px;left:0;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);letter-spacing:0.18em;
+  text-transform:uppercase;color:var(--td);
+}
+.mpipe{display:grid;grid-template-columns:1fr 28px 1fr 28px 1fr;
+  align-items:stretch;gap:0;margin-top:var(--s-5);}
+.mpstage{position:relative;padding:var(--s-4) var(--s-5);
+  border-radius:var(--hero-radius);
+  background:var(--sf);border:1px solid var(--bd);
+  display:flex;flex-direction:column;
+  min-height:auto;}
+.mpstage .stagenum{position:absolute;top:-10px;left:16px;
+  width:22px;height:22px;border-radius:50%;background:var(--bg);
+  border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;}
+.mpstage .mptitle{font-family:'IBM Plex Mono',monospace;font-size:13.5px;
+  letter-spacing:0.18em;text-transform:uppercase;margin-bottom:var(--s-2);
+  font-weight:600;}
+.mpstage .mpdesc{font-size:17px;color:var(--tm);line-height:1.55;}
+.mpstage .mpdesc strong{color:var(--tx);font-weight:500;}
+.mpstage.pc{border-color:var(--cyl);color:var(--cyl);background:var(--bg-c);}
+.mpstage.pg{border-color:var(--gl);color:var(--gl);background:var(--bg-g);}
+.mpstage.pp{border-color:var(--pul);color:var(--pul);background:var(--bg-p);}
+.mparrow{display:flex;align-items:center;justify-content:center;
+  color:var(--bd2);position:relative;}
+.mparrow::before{content:'';position:absolute;left:0;right:0;top:50%;height:1px;
+  background:linear-gradient(90deg, transparent, var(--bd2) 30%, var(--bd2) 70%, transparent);}
+.mparrow::after{content:'▶';position:relative;z-index:1;background:var(--bg);
+  padding:0 4px;color:var(--gl);font-size:10px;}
+
+/* ══════════════════════════════════════
+   TABLE (S3) — v2: hairlines only, champion row highlighted
+══════════════════════════════════════ */
+.tw{margin-top:var(--s-4);}
+table{width:100%;border-collapse:collapse;font-size:17.5px;}
+thead th{
+  text-align:left;padding:var(--s-3) var(--s-4) var(--s-3) 0;
+  background:transparent;color:var(--td);
+  font-weight:600;font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);letter-spacing:0.16em;
+  text-transform:uppercase;
+  border-bottom:1px solid var(--bd2);
+}
+thead th:first-child{padding-left:var(--s-3);}
+tbody td{
+  padding:var(--s-3) var(--s-4) var(--s-3) 0;
+  border-bottom:1px solid var(--bd);
+  color:var(--tx);vertical-align:top;line-height:1.5;
+}
+tbody td:first-child{padding-left:var(--s-3);color:var(--td);
+  font-family:'IBM Plex Mono',monospace;font-size:12.5px;
+  letter-spacing:0.1em;width:36px;}
+tbody td:nth-child(2){color:var(--tx);font-weight:500;width:18%;}
+tr.champ td{background:var(--bg-g);}
+tr.champ td:first-child{color:var(--gl);}
+tr:last-child td{border-bottom:none;}
+
+.b{display:inline-block;font-family:'IBM Plex Mono',monospace;
+  font-size:12.5px;font-weight:600;letter-spacing:0.1em;
+  padding:2px 8px;border-radius:2px;text-transform:uppercase;}
+.bg{background:rgba(74,222,128,0.15);color:var(--gl);border:1px solid rgba(74,222,128,0.3);}
+.bc{background:rgba(34,211,238,0.15);color:var(--cyl);border:1px solid rgba(34,211,238,0.3);}
+.ba{background:rgba(251,191,36,0.15);color:var(--aml);border:1px solid rgba(251,191,36,0.3);}
+
+/* ══════════════════════════════════════
+   REFERENCES (S4) — v2: quiet card stack with hairlines
+══════════════════════════════════════ */
+.ref-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:var(--s-7);column-gap:var(--s-8);
+}
+.ref-cat{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:var(--fs-micro);font-weight:600;
+  letter-spacing:0.22em;text-transform:uppercase;
+  color:var(--gl);
+  padding-bottom:var(--s-2);margin-bottom:var(--s-3);
+  border-bottom:1px solid var(--bd2);
+  display:flex;align-items:baseline;justify-content:space-between;
+}
+.ref-cat .ct{color:var(--td);font-weight:400;letter-spacing:0.14em;}
+.ref-cat:not(:first-child){margin-top:var(--s-5);}
+
+.ref{
+  display:grid;grid-template-columns:32px 1fr;
+  gap:var(--s-3);padding:var(--s-3) 0;
+  border-bottom:1px dashed rgba(31,58,37,0.6);
+}
+.ref:last-child{border-bottom:none;}
+.ref .rn{
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:600;letter-spacing:0.06em;
+  color:var(--gl);padding-top:2px;
+}
+.ref .rt{font-size:16px;font-weight:500;color:var(--tx);
+  line-height:1.45;}
+.ref .rsrc{font-size:14.5px;color:var(--tm);
+  margin-top:2px;line-height:1.45;}
+.ref .rl2{font-size:13px;color:var(--cyl);
+  font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;
+  display:inline-block;margin-top:2px;
+  border-bottom:1px dashed transparent;
+  transition:border-color 120ms;}
+.ref .rl2:hover{border-color:var(--cyl);}
+
+/* ══════════════════════════════════════
+   PRINT
+══════════════════════════════════════ */
+@page { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { height: auto !important; overflow: visible !important; }
+  #deck { position: static !important; height: auto !important; display: block !important; }
+  .slide {
+    position: relative !important; inset: auto !important;
+    display: flex !important; flex-direction: column !important;
+    opacity: 1 !important; pointer-events: all !important;
+    width: 100% !important; height: 100vh !important;
+    overflow: hidden !important;
+    page-break-after: always; break-after: page; page-break-inside: avoid;
+    transition: none !important;
+  }
+  .slide:last-of-type { page-break-after: auto; break-after: auto; }
+  .slide * { animation: none !important; transition: none !important;
+    opacity: 1 !important; transform: none !important; }
+  .slide-role { transform: translateY(-50%) rotate(-90deg) !important; }
+  #nav, #bar { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="bar" style="width:0%"></div>
+
+<div id="deck">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 1 · COVER — v2: editorial mast + g-feature (hero + 2 quiet)
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide active" id="s1">
+  <div class="slide-num"><span class="now">01</span><span class="of">/</span>04</div>
+  <div class="slide-role">{{ROLE · COVER}}</div>
+  <div class="slide-fp">{{SYSTEM · v0.1}}<span class="dot">·</span>{{DATE · 2026-05}}</div>
+
+  <div class="slide-body">
+    <div class="cover-mast">
+      <div class="eyebrow"><span class="dot"></span>{{EYEBROW · TOPIC · CATEGORY}}<span class="div"></span>{{depth/format tag}}</div>
+      <h1>{{Headline thesis with <span class="accent">key term highlighted</span>}}</h1>
+      <div class="lede">{{One-paragraph lede: who this is for, what it argues, what decision it enables.}}</div>
+    </div>
+    <div class="slide-rule"></div>
+    <div class="g-feature">
+      <div class="card-hero" data-fig="01">
+        <div class="ch-eyebrow">{{PROPOSAL / THESIS · primary takeaway}}</div>
+        <div class="ch-headline">{{Hero claim — <span class="accent">短，有力的單句</span>}}</div>
+        <div class="ch-body">{{Supporting one-sentence rationale for why this is the right move.}}</div>
+      </div>
+      <div class="col-quiet">
+        <div class="card-quiet">
+          <div class="cq-eyebrow cq-r"><span class="num">01</span>{{Frame · e.g. PROBLEM / GAP}}</div>
+          <div class="cq-body">{{What's broken / what's the gap, quantified.}}</div>
+        </div>
+        <div class="card-quiet">
+          <div class="cq-eyebrow cq-c"><span class="num">02</span>{{Frame · e.g. ASK / NEXT STEP}}</div>
+          <div class="cq-body">{{What the reader is being asked to decide.}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 2 · HERO — v2: figure-numbered pipeline + 1 hero conclusion card
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s2">
+  <div class="slide-num"><span class="now">02</span><span class="of">/</span>04</div>
+  <div class="slide-role">{{ROLE · HERO}}</div>
+  <div class="slide-fp">{{SYSTEM · v0.1}}<span class="dot">·</span>{{DATE · 2026-05}}</div>
+
+  <div class="slide-body">
+    <div class="shead">
+      <div class="scat">{{HERO · ARCHITECTURE / TIMELINE / POSITIONING}}</div>
+      <h2>{{Headline describing the centerpiece thesis}}</h2>
+      <div class="sub">{{Stage count, branch count, integration scope}}</div>
+    </div>
+    <div class="slide-rule"></div>
+    <div class="fig-wrap" data-fig="02" data-cap="{{caption · pipeline architecture}}">
+      <div class="mpipe">
+        <div class="mpstage pc">
+          <span class="stagenum">1</span>
+          <div class="mptitle">{{Stage 1}}</div>
+          <div class="mpdesc">{{What enters / what's produced}}</div>
+        </div>
+        <div class="mparrow"></div>
+        <div class="mpstage pg">
+          <span class="stagenum">2</span>
+          <div class="mptitle">{{Stage 2}}</div>
+          <div class="mpdesc">{{Core transformation}}</div>
+        </div>
+        <div class="mparrow"></div>
+        <div class="mpstage pp">
+          <span class="stagenum">3</span>
+          <div class="mptitle">{{Stage 3}}</div>
+          <div class="mpdesc">{{Output / integration target}}</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-hero" data-fig="03">
+      <div class="ch-eyebrow">SYNTHESIS · 一句話結論</div>
+      <div class="ch-headline">{{Centerpiece punchline — <span class="accent">the business outcome</span> in one sentence}}</div>
+      <div class="ch-body">{{Optional second sentence with the trade-off or caveat.}}</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 3 · SELECTION — v2: minimal table, single champion row
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s3">
+  <div class="slide-num"><span class="now">03</span><span class="of">/</span>04</div>
+  <div class="slide-role">{{ROLE · SELECTION}}</div>
+  <div class="slide-fp">{{SYSTEM · v0.1}}<span class="dot">·</span>{{DATE · 2026-05}}</div>
+
+  <div class="slide-body">
+    <div class="shead">
+      <div class="scat">{{SELECTION · SCORECARD / TRADEOFF}}</div>
+      <h2>{{Headline asserting the selection principle — full sentence}}</h2>
+      <div class="sub">{{Principle in one line — what the table proves}}</div>
+    </div>
+    <div class="slide-rule"></div>
+    <div class="fig-wrap" data-fig="04" data-cap="{{caption · comparison table}}">
+      <div class="tw">
+        <table>
+          <thead><tr><th></th><th>{{維度}}</th><th>{{Option A}}</th><th>{{Option B (chosen)}}</th><th>{{差異}}</th><th>{{結論}}</th></tr></thead>
+          <tbody>
+            <!-- single .champ row — pick the row that best dramatizes the chosen option's
+                 strongest differentiator (often the most quantified / most concrete) -->
+            <tr><td>01</td><td>{{r1c1}}</td><td>{{r1c2}}</td><td>{{r1c3}}</td><td>{{r1c4}}</td><td><span class="b bg">{{B WINS}}</span></td></tr>
+            <tr><td>02</td><td>{{r2c1}}</td><td>{{r2c2}}</td><td>{{r2c3}}</td><td>{{r2c4}}</td><td><span class="b bg">{{B WINS}}</span></td></tr>
+            <tr class="champ"><td>03</td><td>{{r3c1 · KEY DIFFERENTIATOR}}</td><td>{{r3c2}}</td><td>{{r3c3}}</td><td>{{r3c4 · with number}}</td><td><span class="b bg">{{B WINS}}</span></td></tr>
+            <tr><td>04</td><td>{{r4c1}}</td><td>{{r4c2}}</td><td>{{r4c3}}</td><td>{{r4c4}}</td><td><span class="b bg">{{B WINS}}</span></td></tr>
+            <tr><td>05</td><td>{{r5c1}}</td><td>{{r5c2}}</td><td>{{r5c3}}</td><td>{{r5c4}}</td><td><span class="b bg">{{B WINS}}</span></td></tr>
+            <tr><td>06</td><td>{{r6c1}}</td><td>{{r6c2}}</td><td>{{r6c3}}</td><td>{{r6c4}}</td><td><span class="b bc">{{平手 / NEUTRAL}}</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SLIDE 4 · REFERENCES — v2: hairlined quiet stack, 8 refs in 4 cats
+     ═══════════════════════════════════════════════════════════════ -->
+<section class="slide" id="s4">
+  <div class="slide-num"><span class="now">04</span><span class="of">/</span>04</div>
+  <div class="slide-role">{{ROLE · REFERENCES}}</div>
+  <div class="slide-fp">{{SYSTEM · v0.1}}<span class="dot">·</span>{{DATE · 2026-05}}</div>
+
+  <div class="slide-body">
+    <div class="shead">
+      <div class="scat">REFERENCES · 設計血統 / 佐證基礎</div>
+      <h2>{{Headline stating the proposal is evidence-backed}}</h2>
+      <div class="sub">{{N from cat 1 · N from cat 2 · N from cat 3 · N from cat 4 — all verifiable}}</div>
+    </div>
+    <div class="slide-rule"></div>
+    <div class="ref-grid">
+      <div>
+        <div class="ref-cat">{{Category 1}}<span class="ct">02 entries</span></div>
+        <div class="ref"><div class="rn">[01]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref"><div class="rn">[02]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref-cat">{{Category 2}}<span class="ct">02 entries</span></div>
+        <div class="ref"><div class="rn">[03]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref"><div class="rn">[04]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      </div>
+      <div>
+        <div class="ref-cat">{{Category 3}}<span class="ct">02 entries</span></div>
+        <div class="ref"><div class="rn">[05]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref"><div class="rn">[06]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref-cat">{{Category 4}}<span class="ct">02 entries</span></div>
+        <div class="ref"><div class="rn">[07]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+        <div class="ref"><div class="rn">[08]</div><div><div class="rt">{{Title — Source}}</div><div class="rsrc">{{1-line description}}</div><a class="rl2" href="{{url}}">{{stable-id}}</a></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<nav id="nav">
+  <button id="prev" aria-label="Previous">&larr;</button>
+  <span id="counter">01 / 04</span>
+  <button id="next" aria-label="Next">&rarr;</button>
+</nav>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+  let idx = 0;
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function show(n){
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => {
+      const active = i === idx;
+      s.classList.toggle('active', active);
+      if (active) {
+        Array.from(s.querySelector('.slide-body').children).forEach(child => {
+          child.style.animation = 'none';
+          void child.offsetWidth;
+          child.style.animation = '';
+        });
+      }
+    });
+    counter.textContent = pad(idx + 1) + ' / ' + pad(slides.length);
+    bar.style.width = ((idx + 1) / slides.length * 100) + '%';
+  }
+  document.getElementById('prev').onclick = () => show(idx - 1);
+  document.getElementById('next').onclick = () => show(idx + 1);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(idx + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(idx - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>

@@ -24,6 +24,24 @@ This skill is opinionated about *editorial discipline* (anti-fabrication, action
 
 ---
 
+## Conformance language
+
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in RFC 2119 and RFC 8174 — **and only when they appear in ALL CAPITALS.** A lowercase "must" / "should" / "may" is ordinary prose, not a normative requirement.
+
+Each level maps to a concrete runtime consequence in this skill ecosystem:
+
+| Level | Meaning | Consequence if unmet |
+|---|---|---|
+| **MUST** / **MUST NOT** / **REQUIRED** | Absolute requirement / prohibition | **BLOCK** — stop; do not emit or hand off |
+| **SHOULD** / **SHOULD NOT** / **RECOMMENDED** | Strong default; deviating REQUIRES a stated reason | **WARN** — surface the deviation to the user, then MAY proceed |
+| **MAY** / **OPTIONAL** | Genuine free choice | none |
+
+**Assigning BLOCK vs WARN (Design-by-Contract lens).** When deciding a new rule's level, attribute the fault: a **precondition** failure (missing or invalid *input* the skill depends on) is the caller's fault — refuse or ask the user rather than guessing. A **postcondition** failure (the skill's *own output* violates a rule) is the skill's fault — BLOCK and fix before delivery; never ship it behind a warning. An **invariant** (must hold throughout, e.g. output stays parseable to the schema) is always a `MUST`.
+
+This vocabulary is shared verbatim by the sibling render skills (`dark-deck-report`, `poster-maker`), so a `MUST` in any one of them carries the same weight here.
+
+---
+
 ## Quick Reference
 
 **Inputs**
@@ -41,45 +59,45 @@ This skill is opinionated about *editorial discipline* (anti-fabrication, action
 
 ---
 
-## Core Law (non-negotiable)
+## Core Law
 
 ```
 user's own words  >  approved external material  >  AI synthesis of facts  >  AI invention
 ```
 
-Full spec: [references/core-law.md](references/core-law.md). Summary: cite or mark `[AI-INFERRED]`; never fabricate numbers, citations, or quotes.
+Full spec: [references/core-law.md](references/core-law.md). In normative terms: synthesis **MUST** cite every numeric, named, dated, or quoted claim, or mark it `[AI-INFERRED]`. It **MUST NOT** fabricate numbers, citations, or quotes. `[AI-INFERRED]` **MAY** remain at emit-time for narrative continuity, but it **MUST** be resolved before any renderer consumes the file (enforced as **BLOCK** at the pre-render placeholder gate).
 
 ---
 
 ## The Three-Move Spine
 
-Every synthesis run is exactly three moves. Resist the urge to add stages.
+Every synthesis run is exactly three moves. You **MUST NOT** add stages — three moves cover ≥90% of value; later stages add latency, not quality.
 
 ### Move 1 — Classify report_type
 
 Read source material headers, user prompt, and any explicit user statement. Determine which `report_type` enum value applies (see [references/schema-v0.1.md §3](references/schema-v0.1.md)).
 
-**Confirm with the user before proceeding.** Show your reasoning in one sentence and the chosen type. If ambiguous (e.g., could be investigation OR audit), ask once.
+You **MUST** confirm the type with the user before proceeding: show your reasoning in one sentence and the chosen type. If ambiguous (e.g., could be investigation OR audit), you **MUST** ask once rather than guess.
 
-If `report_type` falls outside MVP support (pitch / brand / regulatory / earnings), STOP and tell the user which future skill will handle it. Do not attempt to force-fit.
+If `report_type` falls outside MVP support (pitch / brand / regulatory / earnings), you **MUST** stop and name the future skill that will handle it. You **MUST NOT** force-fit an out-of-scope genre.
 
 ### Move 2 — Propose governing thought candidates
 
 Read the source material thoroughly. Propose **2–3 candidate `governing_thought.resolution` sentences** (each with its situation + complication framing). Surface them to the user with the source evidence backing each.
 
-**Do not auto-commit.** The user picks. This is the single non-negotiable human-in-the-loop checkpoint — the research that informed this skill (Pyramid Principle, Promptiers, Anthropic skill conventions) all converge on the same point: governing thought is the one decision an AI must never make alone.
+You **MUST NOT** auto-commit a governing thought — the user picks. This is the single irreducible human-in-the-loop checkpoint: the research that informed this skill (Pyramid Principle, Promptiers, Anthropic skill conventions) all converge on the point that governing thought is the one decision an AI **MUST NOT** make alone.
 
-Record the chosen resolution, list the alternatives in `candidates_considered`, and capture `why_picked` for the audit trail.
+You **MUST** record the chosen resolution, list the alternatives in `candidates_considered`, and capture `why_picked` for the audit trail.
 
 ### Move 3 — Generate outline using SCQA opening + AE per slide
 
 Apply the genre's narrative template (`references/narrative-templates/<report_type>.md`) to lay out the slide arc.
 
-- **SCQA opening**: Slides 1–4 of any deck encode Situation → Complication → Question → Answer. This is universal across genres.
-- **Assertion-Evidence per slide**: every slide has a full-sentence `action_title` (the assertion) and `evidence_refs` populated from `evidence.md` (the evidence).
-- **Stock slides** for the genre: include the ones the genre template marks as required.
-- **Action title rubric**: score every title against [references/action-title-rubric.md](references/action-title-rubric.md). Rewrite if <85. Max 2 rewrite attempts per slide.
-- **Ghost-deck test**: read all action titles in order. Must form a coherent argument. See [references/ghost-deck-test.md](references/ghost-deck-test.md).
+- **SCQA opening**: Slides 1–4 of any deck **MUST** encode Situation → Complication → Question → Answer. This is universal across genres.
+- **Assertion-Evidence per slide**: every slide **MUST** have a full-sentence `action_title` (the assertion); every slide **SHOULD** carry `evidence_refs` from `evidence.md` (the evidence), and any claim without them **MUST** be marked `[AI-INFERRED]` per the Core Law.
+- **Stock slides**: you **MUST** include the slides the genre template marks as required.
+- **Action-title rubric**: score every title against [references/action-title-rubric.md](references/action-title-rubric.md). A title scoring <85 **MUST** be rewritten (≤2 attempts per slide; see the Quality Gates table for what happens after 2 failed attempts).
+- **Ghost-deck test**: read all action titles in order — they **MUST** form a coherent argument. See [references/ghost-deck-test.md](references/ghost-deck-test.md).
 
 ---
 
@@ -92,13 +110,13 @@ Genre descriptors live in [references/narrative-templates/](references/narrative
 
 Each descriptor declares: canonical arc, stock slides, headline grammar, citation register default, color semantics, tone register, genre-specific quality gates.
 
-Adding a new genre = adding a new descriptor file. **Do not write genre logic in code** — it lives in data per Track 4 design recommendation.
+Adding a new genre = adding a new descriptor file. Genre logic **MUST** live in descriptor data, not in code (Track 4 design recommendation) — this keeps new genres frictionless.
 
 ---
 
 ## Quality Gates
 
-Run all four before declaring `outline.md` ready for render. Each gate explicitly **BLOCKS** (render cannot proceed) or **WARNS** (user is shown, may proceed).
+You **MUST** run all four gates before declaring `outline.md` ready for render. Each gate is either **BLOCK** (a `MUST` — render cannot proceed) or **WARN** (a `SHOULD` — the user is shown the deviation and MAY proceed).
 
 | Gate | What it checks | Action |
 |---|---|---|
@@ -113,7 +131,7 @@ Placeholder grep command (run at pre-render gate):
 grep -iE "lorem|xxxx|tbd|todo|fixme|\[ai-inferred\]" outline.md evidence.md
 ```
 
-If grep returns hits at pre-render, render is refused with offending file:line list. `[AI-INFERRED]` is permitted at emit-time (Core Law allows it for narrative continuity) but MUST be resolved before render.
+If grep returns hits at pre-render, render **MUST** be refused with the offending file:line list. `[AI-INFERRED]` is permitted at emit-time (Core Law allows it for narrative continuity) but **MUST** be resolved before render.
 
 ---
 
@@ -128,7 +146,7 @@ Render skills MUST:
 4. Run placeholder grep on rendered output
 5. Run ghost-deck test on render output
 
-Synthesis output MUST be parseable to the schema. If you can't satisfy a required field, fail loudly with the missing field name — never silently emit a partial outline.
+Synthesis output **MUST** be parseable to the schema. If you cannot satisfy a `REQUIRED` field, you **MUST** fail loudly with the missing field name; you **MUST NOT** silently emit a partial outline.
 
 ---
 
@@ -145,7 +163,7 @@ Synthesis output MUST be parseable to the schema. If you can't satisfy a require
 | regulatory, clinical | (none) | `plain-document-report` |
 | earnings | (none — semantic-color collision) | TBD |
 
-When listing `compatible_renderers`, include only skill names that the user has confirmed installed. If unsure, ask once. Do not attempt to enumerate the filesystem — the user-confirmed list is the contract.
+When listing `compatible_renderers`, you **MUST** include only skill names the user has confirmed installed; if unsure, you **MUST** ask once. You **MUST NOT** enumerate the filesystem to guess — the user-confirmed list is the contract.
 
 ---
 
@@ -186,6 +204,8 @@ If the user doesn't supply a directory name, derive from `title` (kebab-case, �
 
 ## Anti-Patterns
 
+Every row below is a **MUST NOT** — doing any of these is a defect, not a style choice.
+
 | Don't | Why |
 |---|---|
 | Auto-commit a governing thought without surfacing candidates | Violates the one irreducible human checkpoint |
@@ -205,6 +225,8 @@ If the user doesn't supply a directory name, derive from `title` (kebab-case, �
 - Read/Write for source material and output files
 - Bash for `grep` (placeholder gate) and `ls` (directory listing)
 - No Python required for v0.1; LLM applies rubrics inline. Scripts may be added in v0.2 for determinism.
+
+When editing this skill, read back [references/evals.md](references/evals.md) — a behavioural regression spec that pins the load-bearing `MUST`s (governing-thought checkpoint, out-of-scope refusal, anti-fabrication) to observable expected behaviours.
 
 ---
 

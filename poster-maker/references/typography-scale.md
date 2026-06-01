@@ -15,7 +15,7 @@ Poster typography is fundamentally different from screen typography. A poster vi
 | 3m (across a room) | 28pt | 40px |
 | 5m (hallway) | 48pt | 68px |
 
-**Rule for posters:** Body text minimum = 20px CSS (targets 1m reading distance at A1 print).
+**Rule for posters:** Body copy minimum = **26px CSS portrait / 22px landscape** at A1 (targets ~1.5 m reading; matches SKILL.md Rule 3). Smaller tiers below (bullets, steps, footer, eyebrow) are calibrated sub-body roles, not body copy.
 
 ---
 
@@ -26,35 +26,35 @@ These sizes match the actual CSS variables defined in `poster-infographic-portra
 ```
 Role              CSS var             CSS px    Printed pt    Usage
 ──────────────────────────────────────────────────────────────────────
-hero title        --fs-hero-title     88px      66pt          Hero zone main headline
-hero subtitle     --fs-hero-sub       32px      24pt          Hero zone one-liner
+hero title        --fs-hero-title     108px     81pt          Hero zone main headline
+hero subtitle     --fs-hero-sub       36px      27pt          Hero zone one-liner (BODY tier)
 hero stat value   (hardcoded)         96px      72pt          Dominant hero number (≤4 chars)
 hero stat value   .long modifier      80px      60pt          Hero number 5–6 chars (e.g. "94.7%")
-stat value        --fs-stat           76px      57pt          Stats strip numbers
-stat label        --fs-stat-label     17px      13pt          Stat labels (MONO ALL-CAPS)
-section heading   --fs-section-h      28px      21pt          Content card H3 titles
-body text         --fs-body           20px      15pt          Card paragraphs (min for 1m reading)
-bullet text       --fs-bullet         19px      14pt          List items in cards
-flow step         --fs-step           18px      14pt          Flow strip step labels
-CTA headline      --fs-cta            40px      30pt          Call-to-action zone
-references        --fs-ref            15px      11pt          Footer citations
-eyebrow           --fs-eyebrow        15px      11pt          MONO ALL-CAPS category tags
+stat value        --fs-stat           88px      66pt          Stats strip numbers
+stat label        --fs-stat-label     20px      15pt          Stat labels (MONO ALL-CAPS)
+section heading   --fs-section-h      36px      27pt          Content card H3 titles
+body text         --fs-body           26px      20pt          Card paragraphs (BODY floor)
+bullet text       --fs-bullet         24px      18pt          List items in cards
+flow step         --fs-step           22px      17pt          Flow strip step labels
+CTA headline      --fs-cta            48px      36pt          Call-to-action zone
+references        --fs-ref            17px      13pt          Footer citations
+eyebrow           --fs-eyebrow        17px      13pt          MONO ALL-CAPS category tags
 ```
 
 CSS variables (copy exactly from template `:root`):
 ```css
 :root {
-  --fs-hero-title: 88px;
-  --fs-hero-sub: 32px;
-  --fs-stat: 76px;
-  --fs-stat-label: 17px;
-  --fs-section-h: 28px;
-  --fs-body: 20px;
-  --fs-bullet: 19px;
-  --fs-step: 18px;
-  --fs-cta: 40px;
-  --fs-ref: 15px;
-  --fs-eyebrow: 15px;
+  --fs-hero-title: 108px;
+  --fs-hero-sub: 36px;
+  --fs-stat: 88px;
+  --fs-stat-label: 20px;
+  --fs-section-h: 36px;
+  --fs-body: 26px;
+  --fs-bullet: 24px;
+  --fs-step: 22px;
+  --fs-cta: 48px;
+  --fs-ref: 17px;
+  --fs-eyebrow: 17px;
 }
 ```
 
@@ -62,31 +62,37 @@ CSS variables (copy exactly from template `:root`):
 
 ## Type Scale — A1 Landscape (2480×1748 CSS px)
 
-Landscape has less vertical space. Check `poster-infographic-landscape.html` `:root` for exact values; approximate scale-down ~10%:
+Landscape has less vertical space — every tier is tighter than portrait. Values below match `poster-infographic-landscape.html` `:root` exactly.
 
 ```
-Role              CSS px    Printed pt    Note
-─────────────────────────────────────────────
-hero title        72px      54pt          Landscape left-col hero
-stat value        72px      54pt          Stats cells
-section heading   24px      18pt          3-col card titles
-body text         18px      14pt          Card body (min 18px landscape)
-references        15px      11pt          Footer strip
+Role              CSS var             CSS px    Printed pt    Note
+──────────────────────────────────────────────────────────────────
+hero title        --fs-hero-title     80px      60pt          Landscape left-col hero
+hero subtitle     --fs-hero-sub       28px      21pt          BODY tier (landscape)
+stat value        --fs-stat           68px      51pt          Stats cells
+stat label        --fs-stat-label     16px      12pt          MONO ALL-CAPS
+section heading   --fs-section-h      26px      20pt          3-col card titles
+body text         --fs-body           22px      17pt          Card body (BODY floor, landscape)
+bullet text       --fs-bullet         20px      15pt          List items
+flow step         --fs-step           18px      14pt          Flow strip
+CTA headline      --fs-cta            32px      24pt          Call-to-action
+references        --fs-ref            15px      11pt          Footer strip
+eyebrow           --fs-eyebrow        14px      11pt          MONO category tag
 ```
 
 ---
 
 ## Type Scale — A2 Portrait (1240×1754 CSS px)
 
-Scale all A1 values by 0.71 (√2 ratio):
+Scale all A1 portrait values by 0.71 (√2 ratio):
 
 ```
 Role              CSS px (A2)
 ────────────────────────────
-hero title        62px
-stat value        54px
-section heading   20px
-body text         14px  ← borderline; check at 1m viewing distance
+hero title        77px
+stat value        62px
+section heading   26px
+body text         18px  ← still ≥ 16px reject line; check at ~1m viewing distance
 ```
 
 ---
@@ -157,7 +163,7 @@ Never use 300 (Light) — insufficient contrast at poster viewing distances.
 
 ## Anti-Patterns
 
-- Body text at 16px or below in A1 → unreadable at 1m, reject
+- Body copy below the A1 floor (26px portrait / 22px landscape) → reject (see Rule 3); 16px or below is unreadable at 1m in any case
 - Using system serif fonts (Times New Roman, Georgia) — clashes with IBM Plex aesthetic
 - All-caps body paragraphs — legible for ≤4 words only
 - `italic` for body text — unreadable at viewing distance

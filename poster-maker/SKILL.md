@@ -15,6 +15,24 @@ description: |
 
 # poster-maker
 
+## Conformance language
+
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in RFC 2119 and RFC 8174 — **and only when they appear in ALL CAPITALS.** A lowercase "must" / "should" / "may" is ordinary prose, not a normative requirement.
+
+Each level maps to a concrete runtime consequence:
+
+| Level | Meaning | Consequence if unmet |
+|---|---|---|
+| **MUST** / **MUST NOT** / **REQUIRED** | Absolute requirement / prohibition | **BUILD ERROR** — stop; do not deliver the poster |
+| **SHOULD** / **SHOULD NOT** / **RECOMMENDED** | Strong default; deviating REQUIRES a stated reason | **WARN** — surface the deviation to the user, then MAY proceed |
+| **MAY** / **OPTIONAL** | Genuine free choice | none |
+
+**Assigning BLOCK vs WARN (Design-by-Contract lens).** When deciding a new rule's level, attribute the fault: a **precondition** failure (missing or invalid *input* the skill depends on) is the caller's fault — refuse or ask the user rather than guessing. A **postcondition** failure (the skill's *own output* violates a rule) is the skill's fault — BLOCK and fix before delivery; never ship it behind a warning. An **invariant** (must hold throughout, e.g. output stays a self-contained poster that survives `overflow:hidden`) is always a `MUST`.
+
+This vocabulary is shared verbatim with `report-synthesis` and `dark-deck-report`, so a `MUST` carries the same weight across the skill family.
+
+---
+
 ## When to invoke
 
 Trigger on any of these:
@@ -51,6 +69,8 @@ Read a reference file only when you need it — do not pre-load all of them.
 | Situation | Read this file |
 |-----------|---------------|
 | Export, screenshot, or print questions | `references/export-guide.md` |
+| Verifying output before delivery (placeholder / overflow / font-floor checks) | `references/verification.md` |
+| Regression spec — expected behaviours when editing this skill | `references/evals.md` |
 | Font size, type scale, or readability decisions | `references/typography-scale.md` |
 | Layout structure, grid, or zone questions | `references/layout-patterns.md` |
 | Visual storytelling, narrative arc, LATCH | `references/visual-storytelling.md` |
@@ -61,16 +81,16 @@ Read a reference file only when you need it — do not pre-load all of them.
 
 ## Non-Negotiable Rules
 
-1. **No fabricated facts** — use only what's in the input. Mark inferences `[INFERRED]`
-2. **Overflow = build error** — fixed canvas, `overflow: hidden` everywhere. Cut content before shrinking fonts
-3. **Body text minimum: 26px CSS** (portrait) / **22px CSS** (landscape) at A1 scale (1–2m viewing distance). Both template defaults are already calibrated — do NOT reduce them to fit more content. Cut content instead. AI instinct to shrink fonts for fit creates posters that feel empty and unreadable when printed.
-4. **Sparse upscale rule** — when a card has fewer than ~80 words of real content after trimming, scale UP rather than leaving visual void:
+1. **No fabricated facts** — you **MUST** use only what's in the input and **MUST** mark inferences `[INFERRED]`. You **MUST NOT** invent numbers, names, dates, or quotes.
+2. **Overflow = build error** — the canvas is fixed with `overflow: hidden` everywhere. Content **MUST** fit; you **MUST** cut content before shrinking fonts.
+3. **Body-text floor** — *body copy* (card paragraphs `.content-card p` and the hero subtitle `.hero-sub`) **MUST NOT** drop below **26px CSS** portrait / **22px CSS** landscape at A1 (1–2 m viewing distance). This floor governs body copy only; the smaller tiers (`--fs-bullet` 24, `--fs-step` 22, `--fs-stat-label` 20, `--fs-ref`/`--fs-eyebrow` 17) are calibrated defaults and are **not** body text — do not raise them to 26. Template defaults are already calibrated; you **MUST NOT** reduce them to fit more content — cut content instead. The AI instinct to shrink fonts for fit produces posters that feel empty and read as unreadable when printed.
+4. **Sparse upscale rule** — when a card has fewer than ~80 words of real content after trimming, you **SHOULD** scale UP rather than leave a visual void:
    - `--fs-section-h`: 36px → 42px
    - `--fs-body`: 26px → 30px
    - card `gap`: 22px → 28px
-   Apply by overriding these variables inline on `.content-card.sparse` in a `<style>` block, or set them globally if ALL cards are sparse. Never scale down below the defaults.
-5. **Semantic colour** — `--gl` green = positive, `--cyl` cyan = info/data, `--aml` amber = caution, `--pul` purple = synthesis, `--rl` red = problem. Not decorative
-6. **Light theme for print** — business / public-facing posters often read better with `body.light`
+   Apply by overriding these variables inline on `.content-card.sparse` in a `<style>` block, or set them globally if ALL cards are sparse. You **MUST NOT** scale down below the defaults.
+5. **Semantic colour** — `--gl` green = positive, `--cyl` cyan = info/data, `--aml` amber = caution, `--pul` purple = synthesis, `--rl` red = problem. Accents **MUST** carry meaning; you **MUST NOT** use them decoratively.
+6. **Light theme for print** — business / public-facing posters often read better with `body.light`; you **SHOULD** apply it for print or public delivery.
 
 ---
 
@@ -135,7 +155,7 @@ Ask ONE question only if orientation is genuinely ambiguous:
 - **Category**: grouping by type/theme → default for most business posters
 - **Hierarchy**: ranking, priority, importance → put most impactful card top-left
 
-**Slot mapping — fill these exactly (no guessing):**
+**Slot mapping — fill these exactly (no guessing).** Every `Limit` below is a `MUST NOT exceed`; overrunning a limit is the leading cause of overflow:
 
 *HERO zone:*
 | Slot | Class | Limit | Note |
@@ -173,18 +193,18 @@ Ask ONE question only if orientation is genuinely ambiguous:
 - 來源條目 `.footer-ref`：≤ 80 chars；最多 4 條
 - QR `.qr-url`：填入實際 URL 或 doi（不是佔位符）
 
-**Zone presence rules:**
-- `STATS STRIP`: remove if < 2 stats
-- `FLOW STRIP`: remove if no sequential process
-- `CTA ZONE`: remove if no call-to-action
-- `hero-stat-block`: remove if no dominant numeric stat
+**Zone presence rules** (each is a `MUST` — an empty or half-filled zone is a build defect):
+- `STATS STRIP`: you **MUST** remove it if < 2 stats
+- `FLOW STRIP`: you **MUST** remove it if there is no sequential process
+- `CTA ZONE`: you **MUST** remove it if there is no call-to-action
+- `hero-stat-block`: you **MUST** remove it if there is no dominant numeric stat
 
 **Priority triage — label before trimming:**
-- **P0** (never cut): hero_claim, primary stat (hero stat block), section titles
+- **P0** (**MUST NOT** cut): hero_claim, primary stat (hero stat block), section titles
 - **P1** (cut last): card bullets (max 3), stats strip values, flow step labels
 - **P2** (cut first): card body paragraphs, flow step sub-descriptions, extra sources
 
-**Capacity constraint:** A1 portrait holds ~900 words across all zones at legible size. If total intake exceeds this, apply trim rules immediately:
+**Capacity constraint:** A1 portrait holds ~900 words across all zones at legible size. If total intake exceeds this, you **MUST** apply the trim rules immediately:
 1. Convert P2 paragraphs → bullets or delete (saves ~30%)
 2. Cut supporting examples, keep conclusions
 3. Cut to 3 sources max
@@ -207,10 +227,10 @@ Ask ONE question only if orientation is genuinely ambiguous:
 | `.sv-bar` `.sv-bar-fill` | Stats strip 量化數值的比例條 | 設 `--w:` = 實際百分比；若數值是類別型（非量化）→ 加 `class="no-bar"` 到 `.stat-cell` 隱藏比例條 |
 
 **選用規則：**
-- 有量化數據時，每張卡片至少使用 1 個視覺元件
-- 同一張卡片最多 2 種元件；`.card-stat` 與 `.data-bars` 互斥（擇一）
-- `.callout` 可與任一元件並用，放在段落或條列之後
-- 無量化數據的卡片：用 `.callout`、`.pullquote` 或 `<span class="kpi">` 突出最重要的一句話
+- 有量化數據時，每張卡片 **SHOULD** 至少使用 1 個視覺元件
+- 同一張卡片 **MUST NOT** 超過 2 種元件；`.card-stat` 與 `.data-bars` **MUST** 互斥（擇一）
+- `.callout` **MAY** 與任一元件並用，放在段落或條列之後
+- 無量化數據的卡片 **SHOULD** 用 `.callout`、`.pullquote` 或 `<span class="kpi">` 突出最重要的一句話
 - `.vs-layout` 或 `.timeline` 使用時通常取代整個 `<ul>` 條列區塊
 
 **Illustration decision — when content needs a geometric SVG diagram:**
@@ -239,7 +259,7 @@ After the toolkit selection above, scan each card for **structural relationships
 
 **Single test:** delete the diagram in your head — does the reader lose information the prose does not recover? If no, do not add it.
 
-**When adding:** read `references/illustration-patterns.md` for copy-paste SVG snippets, sizing rules (max 240px tall portrait / 200px landscape), and the required CSS scaffold (`.poster-illus`, `.illus-stroke`, `.illus-label`). Inherit the card's semantic accent via `style="color: var(--cyl)"` etc. Replace every `LABEL_*` token with real text from the input — never leave placeholder tokens.
+**When adding:** read `references/illustration-patterns.md` for copy-paste SVG snippets, sizing rules (max 240px tall portrait / 200px landscape), and the required CSS scaffold (`.poster-illus`, `.illus-stroke`, `.illus-label`). Inherit the card's semantic accent via `style="color: var(--cyl)"` etc. You **MUST** replace every `LABEL_*` token with real text from the input; you **MUST NOT** leave any placeholder token in the output.
 
 **顏色配對 — 語義優先，位置其次：**
 
@@ -260,7 +280,7 @@ After the toolkit selection above, scan each card for **structural relationships
 
 **預設（無明確語義）：** 仍可使用位置配色（Card 1 = green, 2 = cyan, 3 = amber, 4 = purple），此時不需加 `c-*` class。
 
-**語義顏色限制：** 5張卡最多用 3 種顏色；相鄰卡片避免使用相同顏色。
+**語義顏色限制：** 5 張卡 **MUST NOT** 超過 3 種顏色；相鄰卡片 **SHOULD NOT** 使用相同顏色。
 
 ### 4. Fill and write HTML
 
@@ -278,13 +298,13 @@ After the toolkit selection above, scan each card for **structural relationships
 - Apply `body.light` class if: user requested light theme, or content is for public/print use
 
 **繁體中文內容規則：**
-- **`<br>` 只用於 `.hero-title` 和 `.main-headline`** 的刻意換行；body / bullet / subtitle **絕對不加 `<br>`**，讓 CSS 自然換行
-- **中英混排**：英文數字自然嵌入中文句中，不需用空格包圍（CSS `word-break: break-word` 處理）
-- **標點符號**：不在句中強制換行；CSS `line-break: strict` 已防止標點出現行首
-- **編碼**：Write tool 預設 UTF-8 ✓；`<meta charset="UTF-8">` 必須是 `<head>` 的第一個 meta tag
-- **字型離線**：Google Fonts CDN 需網路；若離線環境，字型降格為系統黑體（版面不壞但字型不同）
+- **`<br>`**：**MUST** 只用於 `.hero-title` 和 `.main-headline` 的刻意換行；body / bullet / subtitle **MUST NOT** 加 `<br>`，必須讓 CSS 自然換行
+- **中英混排**：英文數字自然嵌入中文句中，**SHOULD NOT** 用空格包圍（CSS `word-break: break-word` 處理）
+- **標點符號**：**MUST NOT** 在句中強制換行；CSS `line-break: strict` 已防止標點出現行首
+- **編碼**：Write tool 預設 UTF-8 ✓；`<meta charset="UTF-8">` **MUST** 是 `<head>` 的第一個 meta tag
+- **字型離線**：Google Fonts CDN 需網路；離線環境字型降格為系統黑體（版面不壞但字型不同）
 
-**Scan before writing:** grep for `{{` — zero remaining placeholders before writing the file.
+**Scan before writing:** 寫檔前 **MUST** grep `{{` 並確認零殘留 placeholder。
 
 ### 5. Write output
 
@@ -321,6 +341,8 @@ See `references/export-guide.md` for Playwright PDF, Chrome DevTools, and multi-
 
 ### 7. Output checklist
 
+Every box below **MUST** be checked before you deliver — an unchecked box is a build error. For the three runnable checks (placeholder scan, overflow geometry, typography-floor probe), see [references/verification.md](references/verification.md):
+
 - [ ] Zero `{{` tokens remain
 - [ ] Zero `LABEL_*` tokens remain in any inline SVG illustration
 - [ ] Header has eyebrow + hero title
@@ -339,7 +361,7 @@ See `references/export-guide.md` for Playwright PDF, Chrome DevTools, and multi-
 | **A1 (default)** | **1748×2480** | **2480×1748** |
 | A0 | 2480×3508 | 3508×2480 |
 
-Set on `.poster { width: Xpx; height: Ypx; }` — do not use `100vw/100vh` for posters (breaks Playwright sizing).
+Set on `.poster { width: Xpx; height: Ypx; }` — you **MUST NOT** use `100vw/100vh` for posters (breaks Playwright sizing).
 
 ---
 

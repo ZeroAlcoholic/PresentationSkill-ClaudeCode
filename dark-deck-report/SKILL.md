@@ -22,6 +22,24 @@ The skill is opinionated about *execution discipline* (typography, overflow, cit
 
 ---
 
+## Conformance language
+
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in RFC 2119 and RFC 8174 — **and only when they appear in ALL CAPITALS.** A lowercase "must" / "should" / "may" is ordinary prose, not a normative requirement.
+
+Each level maps to a concrete runtime consequence:
+
+| Level | Meaning | Consequence if unmet |
+|---|---|---|
+| **MUST** / **MUST NOT** / **REQUIRED** | Absolute requirement / prohibition | **BUILD ERROR** — stop; do not deliver the deck |
+| **SHOULD** / **SHOULD NOT** / **RECOMMENDED** | Strong default; deviating REQUIRES a stated reason | **WARN** — surface the deviation to the user, then MAY proceed |
+| **MAY** / **OPTIONAL** | Genuine free choice | none |
+
+**Assigning BLOCK vs WARN (Design-by-Contract lens).** When deciding a new rule's level, attribute the fault: a **precondition** failure (missing or invalid *input* the skill depends on) is the caller's fault — refuse or ask the user rather than guessing. A **postcondition** failure (the skill's *own output* violates a rule) is the skill's fault — BLOCK and fix before delivery; never ship it behind a warning. An **invariant** (must hold throughout, e.g. output stays self-contained HTML that survives the overflow contract) is always a `MUST`.
+
+This vocabulary is shared verbatim with `report-synthesis` (the upstream synthesis skill) and `poster-maker`, so a `MUST` carries the same weight across the pipeline.
+
+---
+
 ## When to invoke
 
 Use this skill when the user asks for:
@@ -48,22 +66,22 @@ Two modes, picked automatically by presence/absence of `outline.md` in the worki
 
 If `outline.md` is present, it was produced by the `report-synthesis` skill and is the authoritative source of content + structure. Parse its YAML frontmatter and the per-slide YAML fenced blocks; render the deck from those fields.
 
-**Validation contract**:
+**Validation contract**: checks 1–5 are `MUST` (a failure is a **BUILD ERROR** — refuse render). Checks 6–9 are this renderer's additional handling.
 
 *Schema-mandated checks (per [schema-v0.1.md §12](../report-synthesis/references/schema-v0.1.md) — every renderer enforces these)*:
 
-1. Parse `schema_version`. Supported: `0.1`. Fail loudly on major-version mismatch with a migration message.
-2. Verify `dark-deck-report` appears in `compatible_renderers`. If not, refuse and name the correct render skill.
-3. Verify `report_type ∈ { investigation, audit, postmortem, strategy }`. (v0.2 adds `rfc`, `research`, `market-analysis`.) On miss, refuse with a pointer to the future render skill.
-4. Run placeholder grep on `outline.md` BEFORE rendering: `grep -iE "lorem|xxxx|tbd|todo|fixme|\[ai-inferred\]"`. Any hit refuses render with file:line list.
-5. Run ghost-deck test on rendered slide titles in order. Incoherent narrative blocks delivery.
+1. You **MUST** parse `schema_version` (supported: `0.1`) and **MUST** fail loudly on a major-version mismatch with a migration message.
+2. You **MUST** verify `dark-deck-report` appears in `compatible_renderers`; if not, you **MUST** refuse and name the correct render skill.
+3. You **MUST** verify `report_type ∈ { investigation, audit, postmortem, strategy }` (v0.2 adds `rfc`, `research`, `market-analysis`). On miss, you **MUST** refuse with a pointer to the future render skill.
+4. You **MUST** run placeholder grep on `outline.md` BEFORE rendering: `grep -iE "lorem|xxxx|tbd|todo|fixme|\[ai-inferred\]"`. Any hit **MUST** refuse render with a file:line list.
+5. You **MUST** run the ghost-deck test on rendered slide titles in order; an incoherent narrative **MUST** block delivery.
 
 *Dark-deck-specific extras (this renderer's additional handling)*:
 
-6. Honour `delivery.depth` (full / brief / minimal) and `delivery.theme` (dark / light) → select `deck-{depth}{-light}?.html` chassis.
-7. Reject `color_semantics: finance` — semantic-color collision is not supported by this renderer; finance work waits for a dedicated render skill.
-8. Honour `narrative_template` to pick slide arc emphasis (per §Report-type variations).
-9. Honour `hero_pattern` per §Hero-slide patterns; fall back per [schema §9](../report-synthesis/references/schema-v0.1.md) for v0.2 patterns not yet implemented (`quadrant-bubble`, `evidence-grid`) and WARN the user.
+6. You **MUST** honour `delivery.depth` (full / brief / minimal) and `delivery.theme` (dark / light) → select the `deck-{depth}{-light}?.html` chassis.
+7. You **MUST** reject `color_semantics: finance` — the semantic-color collision is not supported here; finance work waits for a dedicated render skill.
+8. You **MUST** honour `narrative_template` to pick slide-arc emphasis (per §Report-type variations).
+9. You **SHOULD** honour `hero_pattern` per §Hero-slide patterns; for v0.2 patterns not yet implemented (`quadrant-bubble`, `evidence-grid`) you **MUST** fall back per [schema §9](../report-synthesis/references/schema-v0.1.md) and **WARN** the user.
 
 **Field-to-slot mapping**:
 
@@ -80,7 +98,7 @@ If `outline.md` is present, it was produced by the `report-synthesis` skill and 
 | `delivery.depth` | Chassis variant (full=14 / brief=4 / minimal=1) |
 | `delivery.theme` | Chassis variant (dark default / light inversion) |
 
-**Anti-fabrication**: Mode A inherits the Core Law from `report-synthesis`. Do not add bullets, numbers, or citations that aren't in `outline.md` / `evidence.md`. If a slot is empty, leave it empty or surface to user — don't invent.
+**Anti-fabrication**: Mode A inherits the Core Law from `report-synthesis`. You **MUST NOT** add bullets, numbers, or citations that aren't in `outline.md` / `evidence.md`. If a slot is empty, you **MUST** leave it empty or surface it to the user — you **MUST NOT** invent content to fill it.
 
 ### Mode B — direct invocation (ad-hoc)
 
@@ -92,14 +110,16 @@ Use Mode B for: single-author decks with inline content; quick prototyping; 1-sl
 
 ## Non-negotiable principles
 
-1. **Headline IS the conclusion (McKinsey pyramid).** Every slide title is a complete sentence stating the takeaway. Sub-title carries the proof (numbers, citation, scope). Headlines that read like topics ("Architecture Overview", "Methodology") are unfinished work. Register must be **declarative-factual**, not persuasive-prescriptive — see [`report-synthesis/references/neutral-language.md`](../report-synthesis/references/neutral-language.md) for the zh/en replacement tables. "保險業面臨壓力" → "保險業適用個資法第6條"; "we must adopt X" → "regulation Y requires X by date Z". A forensic-analytical deck that reads as advocacy gets dismissed.
-2. **Dark forensic aesthetic.** Background `#060d07`. Primary text `#e8f5ea`. The five accent colours have fixed semantic meanings — see [references/visual-storytelling.md](references/visual-storytelling.md).
-3. **Fixed-canvas, not fluid.** Slides are designed for a 1707×960 canvas (16:9) and measured at that size by the overflow script — CSS uses `100vw/100vh`, so the literal pixels are enforced at verification time. Content must fit; overflow is a build error, not a stylistic choice. See §Overflow workflow.
-4. **Print-PDF first-class.** A4 landscape, one slide per page, zero margin loss. The `@media print` block in templates is load-bearing — do not modify without re-testing.
-5. **References are venue-precise.** Cite as `Paper / Product Name (Venue YEAR · Institution · stable-id)`. Never just a URL. See §Citation discipline.
-6. **Open-source neutrality.** Prefer Apache 2.0 / MIT / BSD tooling. Don't write exclusion lists — just don't include excluded items. Neutral framing only.
-7. **Presentation-readable typography.** Body 18px, h2 42px, table cells 17px. The deck is meant to be projected — never reduce to "fit more text"; cut the text instead. (Brief and minimal templates have slightly different baselines — see §Typography baselines.)
-8. **Vertical fill is required.** Every slide uses `justify-content: space-between` so content distributes across the full canvas. Top-heavy layouts with empty lower halves are a build error. Cover slide overrides with `justify-content: center`.
+These are the load-bearing invariants of the chassis. Each is stated at its normative level; a `MUST`/`MUST NOT` here is a **build error** when violated.
+
+1. **Headline IS the conclusion (McKinsey pyramid).** Every slide title **MUST** be a complete sentence stating the takeaway, and its sub-title **MUST** carry the proof (numbers, citation, scope). Titles that read like topics ("Architecture Overview", "Methodology") are unfinished work and **MUST** be rewritten. Register **MUST** be declarative-factual, not persuasive-prescriptive — see [`report-synthesis/references/neutral-language.md`](../report-synthesis/references/neutral-language.md) for the zh/en replacement tables. "保險業面臨壓力" → "保險業適用個資法第6條"; "we must adopt X" → "regulation Y requires X by date Z". A forensic-analytical deck that reads as advocacy gets dismissed.
+2. **Dark forensic aesthetic.** Background `#060d07`, primary text `#e8f5ea`. The five accent colours **MUST** keep their fixed semantic meanings — see [references/visual-storytelling.md](references/visual-storytelling.md). Reusing an accent for a meaning it does not own (e.g. amber for "info") is a defect, not a style choice.
+3. **Fixed-canvas, not fluid.** Slides are designed for a 1707×960 canvas (16:9) and measured at that size by the overflow script — CSS uses `100vw/100vh`, so the literal pixels are enforced at verification time. Content **MUST** fit; any overflow is a **build error**. See §Overflow workflow.
+4. **Print-PDF first-class.** A4 landscape, one slide per page, zero margin loss. The `@media print` block is load-bearing — you **MUST NOT** modify it without re-running the print test (§Print contract).
+5. **References are venue-precise.** Every reference **MUST** be cited as `Paper / Product Name (Venue YEAR · Institution · stable-id)`. A bare URL is **NOT** an acceptable citation. See §Citation discipline.
+6. **Open-source neutrality.** You **SHOULD** prefer Apache 2.0 / MIT / BSD tooling. You **MUST NOT** write exclusion lists — simply omit excluded items and keep framing neutral.
+7. **Presentation-readable typography.** Body 18px, h2 42px, table cells 17px (brief/minimal baselines differ — see §Typography baselines). The deck is projected, so you **MUST NOT** reduce any size below its published floor to "fit more text" — cut the text instead.
+8. **Vertical fill.** Every non-cover slide **MUST** use `justify-content: space-between` so content distributes across the full canvas; a top-heavy slide with an empty lower half is a **build error**. The cover slide **MUST** override with `justify-content: center`.
 
 ---
 
@@ -281,7 +301,7 @@ If the deck is Chinese-primary, lead with Noto Sans TC and use Plex as the Latin
 
 ### Typography baselines (presentation-tuned, do not reduce)
 
-Each template has its own baseline. Lowering any size to "fit more text" is forbidden — **cut text first.**
+Each template has its own baseline. You **MUST NOT** lower any size to "fit more text" — **cut text first.**
 
 | Token | `deck-full.html` | `deck-brief.html` | `deck-minimal.html` |
 |-------|-----------------:|------------------:|--------------------:|
@@ -304,7 +324,7 @@ Each template has its own baseline. Lowering any size to "fit more text" is forb
 | Reference source `.rsrc` | **15.5px** | **14.5px** | **13px** |
 | Reference link (mono) | **13.5px** | **13px** | **12.5px** |
 
-Hard floor: **body content never below 17px, mono labels never below 12.5px, references never below 13px**. The previous baselines (body 16 / table 15 / labels 11) tested too small. If a slide can't fit at these sizes, **the slide has too much content** — cut, don't compress. The `.shead` headlines were already large; the bump targets the supporting text that readers actually need to scan.
+Hard floor: body content **MUST NOT** go below 17px, mono labels **MUST NOT** go below 12.5px, references **MUST NOT** go below 13px. The previous baselines (body 16 / table 15 / labels 11) tested too small. If a slide can't fit at these sizes, **the slide has too much content** — cut, don't compress. The `.shead` headlines were already large; the bump targets the supporting text that readers actually need to scan.
 
 ### CJK / mixed-script width estimator (planning-time)
 
@@ -342,7 +362,7 @@ Use this **before** drafting a long title or wide row, to avoid a render-time ov
 
 ## Content concision rules (mandatory)
 
-Real-world testing showed verbose content shrinks effective font size and pushes the deck top-heavy. **Word caps below are hard limits**, not guidelines.
+Real-world testing showed verbose content shrinks effective font size and pushes the deck top-heavy. The **Hard cap** column below is a `MUST NOT exceed`; the **Soft target** is a `SHOULD`.
 
 | Element | Hard cap | Soft target |
 |---------|---------:|------------:|
@@ -356,7 +376,7 @@ Real-world testing showed verbose content shrinks effective font size and pushes
 | Reference description | 22 words | 14 words; one line |
 | Table cell text | 10 words | 6 words; wrap rarely |
 
-If a card needs more than 2 sentences, split into two cards. If a bullet needs more than 14 words, demote it to its own card. Never solve verbosity with smaller text.
+If a card needs more than 2 sentences, you **MUST** split it into two cards. If a bullet needs more than 14 words, you **MUST** demote it to its own card. You **MUST NOT** solve verbosity with smaller text.
 
 ---
 
@@ -378,7 +398,7 @@ If a card needs more than 2 sentences, split into two cards. If a bullet needs m
 
 ### Vertical fill contract
 
-`.slide { justify-content: space-between }` is the default. Cover slide overrides with `justify-content: center`. This pushes the closing/last block (footer, references, callouts) to the canvas bottom and forces content to breathe. **Do not change the slide's `justify-content` per-slide except on cover.** If a slide reads top-heavy, the fix is either more content, larger inner gaps via `.flex-col { flex: 1; justify-content: space-between }` on the main body block, or a per-slide `gap` bump — never `justify-content: flex-start`.
+`.slide { justify-content: space-between }` is the default. Cover slide overrides with `justify-content: center`. This pushes the closing/last block (footer, references, callouts) to the canvas bottom and forces content to breathe. You **MUST NOT** change the slide's `justify-content` per-slide except on cover. If a slide reads top-heavy, the fix is either more content, larger inner gaps via `.flex-col { flex: 1; justify-content: space-between }` on the main body block, or a per-slide `gap` bump — you **MUST NOT** use `justify-content: flex-start`.
 
 ---
 
@@ -388,9 +408,9 @@ If a card needs more than 2 sentences, split into two cards. If a bullet needs m
 
 **Three ways to override an inline style:**
 
-1. **Best**: Edit the HTML to remove or change the inline style.
-2. **Acceptable**: Use `!important` in the scoped CSS — but only inside `#sN ...` density-override blocks at the bottom of `<style>`, never in base CSS.
-3. **Never**: Higher selector specificity. `body html #s8 div.card` does not beat `style="padding:10px"`.
+1. **Best (RECOMMENDED)**: Edit the HTML to remove or change the inline style.
+2. **Acceptable (MAY)**: Use `!important` in the scoped CSS — but only inside `#sN ...` density-override blocks at the bottom of `<style>`. You **MUST NOT** use `!important` in base CSS.
+3. **Never (MUST NOT)**: Reach for higher selector specificity. `body html #s8 div.card` does not beat `style="padding:10px"`.
 
 Per-slide overrides live in a labelled block at the bottom of every template's `<style>`. Add overrides there, not scattered through the cascade.
 
@@ -414,7 +434,7 @@ If a banned property recurs across slides, promote it to a utility class (e.g. `
 
 ## Print / PDF contract — UNIFIED SNIPPET
 
-`deck-full.html` and `deck-brief.html` include the print block below **verbatim**. `deck-minimal.html` uses a stripped 1-slide variant (no `#deck` reset, no `#nav/#bar` hide, no `:last-of-type` clause, `page-break-after: avoid`) because a single-slide deck cannot benefit from the multi-slide guards. The canonical block remains the source of truth for multi-slide decks — `templates/deck-full*.html`, `templates/deck-brief*.html`, `references/pitfalls.md`, and `references/verification-checklist.md` must all match this exactly. Drift across the multi-slide templates is a documented bug class (see [pitfalls.md P-002 + P-003](references/pitfalls.md)).
+`deck-full.html` and `deck-brief.html` **MUST** include the print block below **verbatim**. `deck-minimal.html` uses a stripped 1-slide variant (no `#deck` reset, no `#nav/#bar` hide, no `:last-of-type` clause, `page-break-after: avoid`) because a single-slide deck cannot benefit from the multi-slide guards. The canonical block is the source of truth for multi-slide decks — `templates/deck-full*.html`, `templates/deck-brief*.html`, `references/pitfalls.md`, and `references/verification-checklist.md` **MUST** all match it exactly. Drift across the multi-slide templates is a documented bug class (see [pitfalls.md P-002 + P-003](references/pitfalls.md)).
 
 ```css
 @page { size: A4 landscape; margin: 0; }
@@ -460,7 +480,7 @@ If a banned property recurs across slides, promote it to a utility class (e.g. `
 
 ## Overflow verification workflow (Chrome DevTools MCP) — MANDATORY
 
-**Every content edit triggers a re-measure of all affected slides.** This is non-negotiable. The fixed-canvas contract is meaningless without measurement.
+Every content edit **MUST** trigger a re-measure of all affected slides. The fixed-canvas contract is meaningless without measurement.
 
 ### Five gotchas that break naive measurement
 
@@ -476,9 +496,9 @@ The script + per-move rationale lives in [references/overflow-script.md](referen
 
 ### Pass criteria (in this order)
 
-1. **`all_ok === true`** — `overshoot === 0` for every slide. Any positive overshoot blocks delivery.
-2. **No `NaN` values** anywhere in the result. NaN means the script encountered something it can't measure → fix the script, not the slide.
-3. **`contentBottom` between ≈ 820 and ≈ 940 on body slides** (canvas - bottom padding ≈ 898). Below 820 → slide under-filled (top-heavy, violates §Vertical fill contract). At 940+ → tight; further additions will overflow.
+1. **`all_ok === true`** — `overshoot === 0` for every slide. Any positive overshoot is a `MUST`-fail that **blocks delivery**.
+2. **No `NaN` values** anywhere in the result. A `NaN` means the script hit something it can't measure → you **MUST** fix the script, not the slide.
+3. **`contentBottom` between ≈ 820 and ≈ 940 on body slides** (canvas − bottom padding ≈ 898). Below 820 → under-filled (top-heavy, violates §Vertical fill contract), which you **SHOULD** fix before shipping. At 940+ → tight; further additions will overflow.
 4. **Cover slide (`#s1`) is exempt** — its `contentBottom` is naturally ~700 because the cover uses `justify-content: center`, not space-between.
 
 ### Compression order (least → most invasive)
@@ -492,11 +512,11 @@ When a slide overflows:
 5. Reduce explicit `h3` margins
 6. **Last resort**: reduce slide's own `padding-top` or `padding-bottom` via `#sN`
 
-If overflow exceeds 80px, the slide is overpopulated — **cut content, don't compress further**. Compression below the published baselines (see §Typography baselines) breaks projection readability.
+If overflow exceeds 80px, the slide is overpopulated — you **MUST** cut content rather than compress further. You **MUST NOT** compress below the published baselines (see §Typography baselines); doing so breaks projection readability.
 
 ### After-edit protocol (non-negotiable)
 
-After ANY edit to a template — even a one-word change — re-open the file in chrome-devtools-mcp and run the script. Do not declare the edit complete until you have seen the `all_ok: true` line. Trusting that "this small change couldn't possibly overflow" is how regressions ship.
+After ANY edit to a template — even a one-word change — you **MUST** re-open the file in chrome-devtools-mcp and run the script. You **MUST NOT** declare the edit complete until you have seen the `all_ok: true` line. Trusting that "this small change couldn't possibly overflow" is how regressions ship.
 
 ---
 
@@ -546,13 +566,13 @@ The selection table (slide 12 in full deck) follows a strict schema. Columns var
 
 Sort by priority first, then by category within each priority.
 
-License/cost/risk columns should be specific values, never qualitative hedge words ("medium risk", "moderate cost", "open source"). Write the actual licence (`Apache 2.0`), the actual figure (`$120/mo`), the actual risk (`vendor lock-in: 90-day exit window`).
+License/cost/risk columns **MUST** be specific values and **MUST NOT** be qualitative hedge words ("medium risk", "moderate cost", "open source"). Write the actual licence (`Apache 2.0`), the actual figure (`$120/mo`), the actual risk (`vendor lock-in: 90-day exit window`).
 
 ---
 
 ## Forbidden patterns
 
-These appeared in earlier drafts and were corrected — do not regenerate:
+Every item below is a **MUST NOT**. These appeared in earlier drafts and were corrected — do not regenerate them:
 
 - Inline padding/margin tweaks scattered through HTML — break specificity, impossible to audit. Use scoped overrides.
 - Purple gradients on white backgrounds — generic AI aesthetic.
@@ -605,9 +625,9 @@ If a verification run produces a min headroom > 30px lower than expected, **inve
 
 ## Locked template features (per-template parity)
 
-These features are visual-storytelling load-bearing. Edits that remove them silently regress the deck's voice. If a refactor seems to require removing one, stop and surface it to the user first.
+These features are visual-storytelling load-bearing. Edits that remove them silently regress the deck's voice. If a refactor seems to require removing one, you **MUST** stop and surface it to the user first.
 
-Per-template parity — only features present in the template's column are locked there. **Do not claim parity where there is none.**
+Per-template parity — only features present in the template's column are locked there. You **MUST NOT** claim parity where there is none.
 
 | Feature | full | brief | minimal | Identifying selectors |
 |---------|:----:|:-----:|:-------:|-----------------------|
@@ -626,13 +646,13 @@ Per-template parity — only features present in the template's column are locke
 | Vertical fill (`justify-content: space-between`) | ✓ | ✓ | grid auto-fills | Cover overrides with `justify-content: center` |
 | Multi-slide keyboard navigation | ✓ | ✓ | — | nav script: Arrow / Space / Home / End / progress bar |
 
-If you add a new template variant, it must include every locked feature applicable to its scope, and you must update this table.
+If you add a new template variant, it **MUST** include every locked feature applicable to its scope, and you **MUST** update this table.
 
 ---
 
 ## Stability self-check (run before declaring complete)
 
-After any edit, these four checks together are the minimum bar:
+After any edit, all four checks below **MUST** pass simultaneously — they are the minimum bar:
 
 ```
 □  Canonical overflow script returns all_ok: true with no NaN
@@ -641,7 +661,7 @@ After any edit, these four checks together are the minimum bar:
 □  Screenshot of densest slide visually shows full content, no truncation, no clustering at top edge
 ```
 
-If any check fails, **do not declare the work done**. Surface the failure to the user with the specific slide id and the measurement output. The skill is "done" only when these four pass simultaneously.
+If any check fails, you **MUST NOT** declare the work done. You **MUST** surface the failure to the user with the specific slide id and the measurement output. The skill is "done" only when these four pass simultaneously.
 
 ---
 
@@ -659,5 +679,6 @@ If any check fails, **do not declare the work done**. Surface the failure to the
 | `references/hero-patterns.md` | Nine `hero_pattern` recipes (7 supported in v0.1, 2 v0.2 with documented fallback) |
 | `references/report-types.md` | Report-type → slide-arc emphasis mappings |
 | `references/verification-checklist.md` | 10-section pre-delivery checklist |
-| `references/overflow-script.md` | Canonical overflow-measurement script (single source of truth) |
+| `references/overflow-script.md` | Canonical overflow + typography-floor measurement scripts (single source of truth) |
 | `references/pitfalls.md` | Documented bugs + root causes + fixes |
+| `references/evals.md` | Behavioural regression spec (expected behaviours when editing this skill) |
